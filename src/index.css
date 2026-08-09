@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+
+/* Switches `dark:` from "follow prefers-color-scheme only" to "follow a
+ * `.dark` class on <html>" — see src/theme/useThemeStore.ts, which is what
+ * sets that class. `system` theme still tracks the OS preference; it just
+ * does so by having JS toggle the class rather than relying on the media
+ * query directly, so an explicit light/dark choice can override it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+  --animate-dirty-pulse: dirty-pulse 2s ease-in-out infinite;
+}
+
+/* Widget "dirty" indicator (see src/widgets/useWidgetDirty.ts) — a soft
+ * border/glow pulse rather than Tailwind's stock `animate-pulse`, which
+ * animates opacity and would fade the widget's own content along with it. */
+@keyframes dirty-pulse {
+  0%,
+  100% {
+    border-color: var(--color-blue-400);
+    box-shadow: 0 0 0 0 rgb(96 165 250 / 0.35);
+  }
+  50% {
+    border-color: var(--color-blue-500);
+    box-shadow: 0 0 0 3px rgb(96 165 250 / 0);
+  }
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+}
+
+#root {
+  min-height: 100svh;
+}
