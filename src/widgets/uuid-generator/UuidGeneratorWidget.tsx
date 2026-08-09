@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import {
   v1 as uuidv1,
@@ -10,6 +9,7 @@ import {
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 const MAX_HISTORY = 20
@@ -69,11 +69,15 @@ function generateUuid(
 }
 
 export default function UuidGeneratorWidget({ instanceId }: WidgetProps) {
-  const [version, setVersion] = useState<Version>('v4')
-  const [uuids, setUuids] = useState<string[]>([])
-  const [name, setName] = useState('')
-  const [namespacePreset, setNamespacePreset] = useState<NamespacePreset>('DNS')
-  const [customNamespace, setCustomNamespace] = useState('')
+  const [version, setVersion] = useWidgetState<Version>(instanceId, 'version', 'v4')
+  const [uuids, setUuids] = useWidgetState<string[]>(instanceId, 'uuids', [])
+  const [name, setName] = useWidgetState(instanceId, 'name', '')
+  const [namespacePreset, setNamespacePreset] = useWidgetState<NamespacePreset>(
+    instanceId,
+    'namespacePreset',
+    'DNS',
+  )
+  const [customNamespace, setCustomNamespace] = useWidgetState(instanceId, 'customNamespace', '')
 
   useWidgetDirty(instanceId, uuids.length > 0 || name.length > 0)
 

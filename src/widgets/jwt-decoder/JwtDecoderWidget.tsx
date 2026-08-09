@@ -4,6 +4,7 @@ import 'react-json-view-lite/dist/index.css'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/cn'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 function base64UrlDecode(input: string): string {
@@ -35,7 +36,7 @@ function decodeJwt(token: string): DecodedJwt {
 }
 
 export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
-  const [token, setToken] = useState('')
+  const [token, setToken] = useWidgetState(instanceId, 'token', '')
   const isDark = useIsDarkTheme()
   useWidgetDirty(instanceId, token.length > 0)
 

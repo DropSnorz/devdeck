@@ -1,52 +1,46 @@
-import {
-  LayoutGrid,
-  PanelLeftClose,
-  PanelLeftOpen,
-  RotateCcw,
-} from 'lucide-react'
-import { useSidebarStore } from '@/sidebar/useSidebarStore'
-import { useAnyWidgetDirty, useResetAllWidgets } from '@/widgets/useWidgetDirty'
+import { LayoutGrid, RotateCcw } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
+import { useAnyWidgetDirty, useResetWidgets } from '@/widgets/useWidgetDirty'
+import { DashboardTabBar } from './DashboardTabBar'
 import { DashboardToolbar } from './DashboardToolbar'
+import { useDashboardStore } from './useDashboardStore'
 
-/** Full-width top bar, visually distinct from the dashboard below it —
- * everything else (sidebar, grid) sits underneath this, not beside it. Owns
- * the sidebar's collapse toggle even though the sidebar itself renders
- * lower, which is why that toggle reads from the shared `useSidebarStore`
- * rather than local state. */
+/** The topbar half of the header row — Dashboard.tsx renders a separate
+ * brand box before this (logo + sidebar toggle), sized to match
+ * WidgetSidebar exactly, so this component's own content (starting with the
+ * tab bar) lines up with the content column beneath it rather than the
+ * sidebar. */
 export function AppHeader() {
-  const sidebarCollapsed = useSidebarStore((state) => state.collapsed)
-  const toggleSidebar = useSidebarStore((state) => state.toggle)
-  const anyDirty = useAnyWidgetDirty()
-  const resetAllWidgets = useResetAllWidgets()
+  // Derives a new array every read (`.map(...)`) — without `useShallow` the
+  // zustand/React 19 subscription sees a different reference on every
+  // snapshot check even when nothing actually changed, which manifests as
+  // "getSnapshot should be cached" / a runaway re-render loop.
+  const activeInstanceIds = useDashboardStore(
+    useShallow((state) => {
+      const active = state.dashboards.find(
+        (dashboard) => dashboard.id === state.activeDashboardId,
+      )
+      return active?.widgets.map((widget) => widget.instanceId) ?? []
+    }),
+  )
+  const anyDirty = useAnyWidgetDirty(activeInstanceIds)
+  const resetWidgets = useResetWidgets()
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <button
-        type="button"
-        onClick={toggleSidebar}
-        aria-label={
-          sidebarCollapsed ? 'Expand tool sidebar' : 'Collapse tool sidebar'
-        }
-        className="hidden rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 md:inline-flex dark:hover:bg-slate-800 dark:hover:text-slate-200"
-      >
-        {sidebarCollapsed ? (
-          <PanelLeftOpen className="size-4" />
-        ) : (
-          <PanelLeftClose className="size-4" />
-        )}
-      </button>
+    <header className="flex h-full min-w-0 flex-1 items-center gap-3 border-b border-slate-200 bg-white px-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      {/* The brand box next to the sidebar carries the logo (and toggle) on
+          desktop — it's hidden below md, so show a compact stand-in here
+          instead of losing it entirely on mobile. */}
+      <LayoutGrid className="size-5 shrink-0 text-slate-900 md:hidden dark:text-slate-100" />
 
-      <div className="flex items-center gap-1.5">
-        <LayoutGrid className="size-5 text-slate-900 dark:text-slate-100" />
-        <span className="text-base font-semibold tracking-tight">DevDeck</span>
-      </div>
+      <DashboardTabBar />
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <button
           type="button"
-          onClick={resetAllWidgets}
+          onClick={() => resetWidgets(activeInstanceIds)}
           disabled={!anyDirty}
-          title="Reset every widget's content back to default"
+          title="Reset every widget on this dashboard back to default"
           className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <RotateCcw className="size-3.5" />

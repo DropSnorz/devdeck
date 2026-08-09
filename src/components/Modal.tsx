@@ -10,7 +10,8 @@ interface ModalProps {
 }
 
 /** Generic centered dialog: backdrop click, Escape, and the close button all
- * dismiss it. Used by the tool browser, share dialog, and confirm prompts. */
+ * dismiss it. Used by the share dialog, the keyboard move/resize dialog, and
+ * confirm prompts (e.g. removing a dashboard). */
 export function Modal({ open, onClose, title, children }: ModalProps) {
   useEffect(() => {
     if (!open) return

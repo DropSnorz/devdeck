@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { CopyButton } from '@/components/CopyButton'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 function splitWords(input: string): string[] {
@@ -29,7 +30,7 @@ const CONVERTERS: { label: string; convert: (words: string[]) => string }[] = [
 ]
 
 export default function TextCaseConverterWidget({ instanceId }: WidgetProps) {
-  const [input, setInput] = useState('')
+  const [input, setInput] = useWidgetState(instanceId, 'input', '')
   const words = useMemo(() => splitWords(input), [input])
   useWidgetDirty(instanceId, input.length > 0)
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import SparkMD5 from 'spark-md5'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 type Algorithm = 'MD5' | 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512'
@@ -32,9 +33,9 @@ async function computeHash(
 }
 
 export default function HashGeneratorWidget({ instanceId }: WidgetProps) {
-  const [algorithm, setAlgorithm] = useState<Algorithm>('SHA-256')
-  const [input, setInput] = useState('')
-  const [hash, setHash] = useState('')
+  const [algorithm, setAlgorithm] = useWidgetState<Algorithm>(instanceId, 'algorithm', 'SHA-256')
+  const [input, setInput] = useWidgetState(instanceId, 'input', '')
+  const [hash, setHash] = useWidgetState(instanceId, 'hash', '')
   useWidgetDirty(instanceId, input.length > 0)
 
   useEffect(() => {
@@ -46,7 +47,9 @@ export default function HashGeneratorWidget({ instanceId }: WidgetProps) {
     return () => {
       cancelled = true
     }
-  }, [algorithm, input])
+    // setHash (from useWidgetState) is stable across re-renders of this
+    // mount, same guarantee as useState's own setter — safe to include.
+  }, [algorithm, input, setHash])
 
   // Derived rather than reset via effect: clears instantly when input is
   // cleared instead of waiting a tick for the effect above to run.

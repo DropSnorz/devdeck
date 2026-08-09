@@ -19,7 +19,7 @@ interface GridPositionDialogProps {
  * documented fallback: every field is a plain, tabbable number input.
  *
  * The caller only mounts this component while the dialog should be open
- * (see PortalableWidget) — so `useState(position)` below always initializes
+ * (see WidgetGridItem) — so `useState(position)` below always initializes
  * from the widget's current committed position on every open, with no
  * separate "resync on open" effect needed. */
 export function GridPositionDialog({

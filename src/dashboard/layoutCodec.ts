@@ -3,8 +3,9 @@ import * as v from 'valibot'
 import { getWidgetDefinition } from '@/widgets/registry'
 import {
   DASHBOARD_LAYOUT_VERSION,
-  type DashboardLayoutV1,
-  type DashboardWidgetInstance,
+  WORKSPACE_LAYOUT_VERSION,
+  type Dashboard,
+  type WorkspaceLayoutV2,
 } from '@/types/layout'
 
 /** The URL fragment (`#layout=...`) param a shared dashboard link is encoded
@@ -23,28 +24,62 @@ const WidgetInstanceSchema = v.object({
   h: v.number(),
 })
 
-const LayoutSchema = v.object({
+const DashboardSchema = v.object({
+  id: v.string(),
+  name: v.string(),
+  widgets: v.array(WidgetInstanceSchema),
+})
+
+const WorkspaceSchema = v.object({
+  version: v.literal(WORKSPACE_LAYOUT_VERSION),
+  dashboards: v.array(DashboardSchema),
+  activeDashboardId: v.string(),
+})
+
+// Pre-tabs share-link shape — links generated before multi-dashboard support
+// existed should still open, not error.
+const LegacyLayoutSchema = v.object({
   version: v.literal(DASHBOARD_LAYOUT_VERSION),
   widgets: v.array(WidgetInstanceSchema),
 })
 
-/** Layout JSON -> compressed, URL-safe string for the `#layout=` fragment. */
-export function encodeLayout(widgets: DashboardWidgetInstance[]): string {
-  const payload: DashboardLayoutV1 = {
-    version: DASHBOARD_LAYOUT_VERSION,
-    widgets,
+/** Workspace JSON -> compressed, URL-safe string for the `#layout=` fragment. */
+export function encodeWorkspace(dashboards: Dashboard[], activeDashboardId: string): string {
+  const payload: WorkspaceLayoutV2 = {
+    version: WORKSPACE_LAYOUT_VERSION,
+    dashboards,
+    activeDashboardId,
   }
   return LZString.compressToEncodedURIComponent(JSON.stringify(payload))
 }
 
 export type DecodeResult =
-  { ok: true; layout: DashboardLayoutV1 } | { ok: false; error: string }
+  | { ok: true; workspace: WorkspaceLayoutV2 }
+  | { ok: false; error: string }
 
-/** Reverses `encodeLayout`, validating the untrusted result before it's
- * allowed to reach the dashboard store. Silently drops any widget instance
- * whose id no longer exists in the registry (e.g. a stale link after a
- * widget was renamed or removed). */
-export function decodeLayout(encoded: string): DecodeResult {
+/** Drops any widget instance whose id no longer exists in the registry
+ * (e.g. a stale link after a widget was renamed or removed), and repairs
+ * `activeDashboardId` if it doesn't point at a surviving dashboard. */
+function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
+  const dashboards = workspace.dashboards.map((dashboard) => ({
+    ...dashboard,
+    widgets: dashboard.widgets.filter((widget) => getWidgetDefinition(widget.widgetId)),
+  }))
+  if (dashboards.length === 0) {
+    return { ok: false, error: "This share link doesn't contain any dashboards." }
+  }
+  const activeDashboardId = dashboards.some((dashboard) => dashboard.id === workspace.activeDashboardId)
+    ? workspace.activeDashboardId
+    : dashboards[0].id
+  return {
+    ok: true,
+    workspace: { version: WORKSPACE_LAYOUT_VERSION, dashboards, activeDashboardId },
+  }
+}
+
+/** Reverses `encodeWorkspace`, validating the untrusted result before it's
+ * allowed to reach the dashboard store. */
+export function decodeWorkspace(encoded: string): DecodeResult {
   const json = LZString.decompressFromEncodedURIComponent(encoded)
   if (!json) return { ok: false, error: 'Could not read this share link.' }
 
@@ -55,16 +90,19 @@ export function decodeLayout(encoded: string): DecodeResult {
     return { ok: false, error: 'This share link is corrupted.' }
   }
 
-  const result = v.safeParse(LayoutSchema, parsed)
-  if (!result.success) {
-    return {
-      ok: false,
-      error: "This share link doesn't match a dashboard layout.",
-    }
+  const workspaceResult = v.safeParse(WorkspaceSchema, parsed)
+  if (workspaceResult.success) {
+    return finalizeWorkspace(workspaceResult.output)
   }
 
-  const widgets = result.output.widgets.filter((widget) =>
-    getWidgetDefinition(widget.widgetId),
-  )
-  return { ok: true, layout: { version: DASHBOARD_LAYOUT_VERSION, widgets } }
+  const legacyResult = v.safeParse(LegacyLayoutSchema, parsed)
+  if (legacyResult.success) {
+    return finalizeWorkspace({
+      version: WORKSPACE_LAYOUT_VERSION,
+      dashboards: [{ id: 'shared', name: 'Shared', widgets: legacyResult.output.widgets }],
+      activeDashboardId: 'shared',
+    })
+  }
+
+  return { ok: false, error: "This share link doesn't match a dashboard layout." }
 }

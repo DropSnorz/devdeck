@@ -1,17 +1,16 @@
 import { cn } from '@/lib/cn'
 import { groupWidgetsByCategory } from '@/widgets/categories'
 import type { WidgetDefinition } from '@/widgets/types'
-import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
 import { useSidebarStore } from './useSidebarStore'
 import { useWidgetDragStore } from './useWidgetDragStore'
 
 /** Always-visible catalog of every widget, grouped by category — the
- * "browse and reach for a tool" counterpart to the tool browser modal and
- * command palette. Click opens a tool fullscreen without pinning it (same
- * ephemeral path the command palette uses); dragging a row onto the grid
- * pins it there instead. Hidden below the grid's own editable breakpoint —
- * mobile already has "Add widget" and the command palette for this.
+ * "browse and reach for a tool" counterpart to the command palette. Click
+ * opens a tool fullscreen without pinning it (same ephemeral path the
+ * command palette uses); dragging a row onto the grid pins it there
+ * instead. Hidden below the grid's own editable breakpoint — mobile already
+ * has the command palette for this.
  *
  * Sits below the app header, alongside the main content — collapsed state
  * is toggled from a button in that header (see AppHeader), not from within
@@ -62,9 +61,6 @@ function SidebarWidgetItem({
   const openEphemeral = useOverlayStore((state) => state.openEphemeral)
   const startDragging = useWidgetDragStore((state) => state.startDragging)
   const stopDragging = useWidgetDragStore((state) => state.stopDragging)
-  // Only used for the dimmed "already pinned" affordance — the actual
-  // duplicate check on drop happens in GridLayout's dropConfig.onDragOver.
-  const isPinned = useDashboardStore((state) => state.hasWidget(widget.id))
 
   const handleOpen = () => openEphemeral(widget.id)
 
@@ -92,7 +88,6 @@ function SidebarWidgetItem({
         className={cn(
           'flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-100 active:cursor-grabbing dark:text-slate-300 dark:hover:bg-slate-800',
           collapsed && 'justify-center',
-          isPinned && 'opacity-50',
         )}
       >
         <Icon className="size-4 shrink-0" />

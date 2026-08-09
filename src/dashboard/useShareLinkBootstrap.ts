@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { DashboardLayoutV1 } from '@/types/layout'
-import { decodeLayout, LAYOUT_HASH_PARAM } from './layoutCodec'
+import type { WorkspaceLayoutV2 } from '@/types/layout'
+import { decodeWorkspace, LAYOUT_HASH_PARAM } from './layoutCodec'
 
 function clearLayoutParam() {
   const url = new URL(window.location.href)
@@ -11,11 +11,11 @@ function clearLayoutParam() {
 }
 
 interface BootstrapState {
-  pendingLayout: DashboardLayoutV1 | null
+  pendingWorkspace: WorkspaceLayoutV2 | null
   decodeError: string | null
 }
 
-const EMPTY_STATE: BootstrapState = { pendingLayout: null, decodeError: null }
+const EMPTY_STATE: BootstrapState = { pendingWorkspace: null, decodeError: null }
 
 // Read once, synchronously, as a useState lazy initializer — the sanctioned
 // place to read an environment value (here, the URL) exactly once on mount —
@@ -26,22 +26,22 @@ function readInitialState(): BootstrapState {
   )
   if (!encoded) return EMPTY_STATE
 
-  const result = decodeLayout(encoded)
+  const result = decodeWorkspace(encoded)
   return result.ok
-    ? { pendingLayout: result.layout, decodeError: null }
-    : { pendingLayout: null, decodeError: result.error }
+    ? { pendingWorkspace: result.workspace, decodeError: null }
+    : { pendingWorkspace: null, decodeError: result.error }
 }
 
 /** Surfaces a `#layout=` share link found on first load. A valid link is
  * handed to `ShareLoadPrompt` to confirm before it replaces the local
- * dashboard (per the confirm-before-overwrite decision — never silent). The
+ * workspace (per the confirm-before-overwrite decision — never silent). The
  * fragment is stripped from the URL either way so refreshing doesn't
  * re-prompt. */
 export function useShareLinkBootstrap() {
-  const [{ pendingLayout, decodeError }, setState] = useState(readInitialState)
+  const [{ pendingWorkspace, decodeError }, setState] = useState(readInitialState)
 
   useEffect(() => {
-    if (!pendingLayout && !decodeError) return
+    if (!pendingWorkspace && !decodeError) return
     clearLayoutParam()
     if (!decodeError) return
     const timeoutId = setTimeout(() => {
@@ -57,5 +57,5 @@ export function useShareLinkBootstrap() {
     clearLayoutParam()
   }
 
-  return { pendingLayout, decodeError, dismiss }
+  return { pendingWorkspace, decodeError, dismiss }
 }

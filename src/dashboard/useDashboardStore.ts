@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { nanoid } from 'nanoid'
 import { getWidgetDefinition } from '@/widgets/registry'
-import type { DashboardWidgetInstance } from '@/types/layout'
+import { useWidgetStateStore } from '@/widgets/useWidgetState'
+import type { Dashboard, DashboardWidgetInstance } from '@/types/layout'
 import { DASHBOARD_STORAGE_KEY, DASHBOARD_STORAGE_VERSION } from './persistence'
 
 interface LayoutUpdate {
@@ -20,27 +21,37 @@ export interface GridPosition {
   h: number
 }
 
+export const MAX_DASHBOARDS = 5
+
 interface PersistedDashboardState {
-  widgets: DashboardWidgetInstance[]
+  dashboards: Dashboard[]
+  activeDashboardId: string
 }
 
 interface DashboardState extends PersistedDashboardState {
-  addWidget: (widgetId: string) => void
+  addWidget: (dashboardId: string, widgetId: string) => void
   /** Same as `addWidget`, but at an explicit position/size instead of being
    * appended below everything else — used when a widget is dropped onto the
    * grid from the sidebar. */
-  addWidgetAt: (widgetId: string, position: GridPosition) => void
-  removeWidget: (instanceId: string) => void
-  hasWidget: (widgetId: string) => boolean
-  applyLayoutUpdate: (layout: readonly LayoutUpdate[]) => void
+  addWidgetAt: (dashboardId: string, widgetId: string, position: GridPosition) => void
+  removeWidget: (dashboardId: string, instanceId: string) => void
+  applyLayoutUpdate: (dashboardId: string, layout: readonly LayoutUpdate[]) => void
   /** Keyboard-accessible alternative to dragging/resizing a grid item — used
    * by the move/resize dialog in the widget shell's "…" menu. */
-  setWidgetPosition: (instanceId: string, position: GridPosition) => void
-  replaceWidgets: (widgets: DashboardWidgetInstance[]) => void
+  setWidgetPosition: (dashboardId: string, instanceId: string, position: GridPosition) => void
+
+  addDashboard: (name: string) => void
+  renameDashboard: (id: string, name: string) => void
+  /** Refuses on the last remaining dashboard. Reassigns `activeDashboardId`
+   * if the removed one was active. */
+  removeDashboard: (id: string) => void
+  setActiveDashboardId: (id: string) => void
+  /** The share-link accept path — replaces the entire workspace at once. */
+  importWorkspace: (dashboards: Dashboard[], activeDashboardId: string) => void
 }
 
 /** Seed shown on a true first visit (nothing in localStorage yet). Once
- * persist hydrates from a real stored value — including an empty array the
+ * persist hydrates from a real stored value — including a workspace the
  * user arrived at by removing every widget — this is overwritten and never
  * reappears. */
 const STARTER_WIDGETS: DashboardWidgetInstance[] = [
@@ -63,87 +74,174 @@ const STARTER_WIDGETS: DashboardWidgetInstance[] = [
   },
 ]
 
+const STARTER_DASHBOARD_ID = 'seed-main'
+const STARTER_DASHBOARDS: Dashboard[] = [
+  { id: STARTER_DASHBOARD_ID, name: 'Main', widgets: STARTER_WIDGETS },
+]
+
 function nextAvailableY(widgets: DashboardWidgetInstance[]): number {
   return widgets.reduce((max, widget) => Math.max(max, widget.y + widget.h), 0)
+}
+
+/** Updates one dashboard's widgets by id. Every *other* dashboard keeps the
+ * exact same object reference it had before — not just a shallow copy with
+ * equal values — so a change on one tab can never be mistaken for a change
+ * on another by anything doing reference-based comparisons downstream. */
+function updateDashboardWidgets(
+  dashboards: Dashboard[],
+  dashboardId: string,
+  update: (widgets: DashboardWidgetInstance[]) => DashboardWidgetInstance[],
+): Dashboard[] {
+  return dashboards.map((dashboard) =>
+    dashboard.id === dashboardId
+      ? { ...dashboard, widgets: update(dashboard.widgets) }
+      : dashboard,
+  )
+}
+
+/** Upgrades a pre-tabs (version 1) stored value in place instead of
+ * discarding it — real users may already have widgets pinned. Exported as a
+ * standalone pure function so it can be unit-tested directly against a
+ * hand-built legacy blob, without needing to simulate `persist`'s
+ * localStorage hydration timing. */
+export function migrateDashboardState(
+  persisted: unknown,
+  version: number,
+): PersistedDashboardState {
+  if (version < 2) {
+    const legacy = persisted as { widgets?: DashboardWidgetInstance[] } | undefined
+    const widgets =
+      legacy?.widgets && Array.isArray(legacy.widgets) ? legacy.widgets : STARTER_WIDGETS
+    return {
+      dashboards: [{ id: 'main', name: 'Main', widgets }],
+      activeDashboardId: 'main',
+    }
+  }
+  return persisted as PersistedDashboardState
 }
 
 export const useDashboardStore = create<DashboardState>()(
   persist(
     (set, get) => ({
-      widgets: STARTER_WIDGETS,
+      dashboards: STARTER_DASHBOARDS,
+      activeDashboardId: STARTER_DASHBOARD_ID,
 
-      addWidget: (widgetId) => {
+      addWidget: (dashboardId, widgetId) => {
         const definition = getWidgetDefinition(widgetId)
         if (!definition) return
         set((state) => ({
-          widgets: [
-            ...state.widgets,
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) => [
+            ...widgets,
             {
               instanceId: nanoid(8),
               widgetId,
               x: 0,
-              y: nextAvailableY(state.widgets),
+              y: nextAvailableY(widgets),
               w: definition.defaultSize.w,
               h: definition.defaultSize.h,
             },
-          ],
+          ]),
         }))
       },
 
-      addWidgetAt: (widgetId, position) => {
+      addWidgetAt: (dashboardId, widgetId, position) => {
         if (!getWidgetDefinition(widgetId)) return
         set((state) => ({
-          widgets: [
-            ...state.widgets,
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) => [
+            ...widgets,
             { instanceId: nanoid(8), widgetId, ...position },
-          ],
+          ]),
         }))
       },
 
-      removeWidget: (instanceId) => {
+      removeWidget: (dashboardId, instanceId) => {
         set((state) => ({
-          widgets: state.widgets.filter(
-            (widget) => widget.instanceId !== instanceId,
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
+            widgets.filter((widget) => widget.instanceId !== instanceId),
+          ),
+        }))
+        // A real deletion, unlike a tab switch — this instance is never
+        // coming back, so its content would otherwise leak in useWidgetState's
+        // store for the rest of the session.
+        useWidgetStateStore.getState().resetInstances([instanceId])
+      },
+
+      applyLayoutUpdate: (dashboardId, layout) => {
+        set((state) => ({
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
+            widgets.map((widget) => {
+              const updated = layout.find((item) => item.i === widget.instanceId)
+              return updated
+                ? { ...widget, x: updated.x, y: updated.y, w: updated.w, h: updated.h }
+                : widget
+            }),
           ),
         }))
       },
 
-      hasWidget: (widgetId) =>
-        get().widgets.some((widget) => widget.widgetId === widgetId),
-
-      applyLayoutUpdate: (layout) => {
+      setWidgetPosition: (dashboardId, instanceId, position) => {
         set((state) => ({
-          widgets: state.widgets.map((widget) => {
-            const updated = layout.find((item) => item.i === widget.instanceId)
-            return updated
-              ? {
-                  ...widget,
-                  x: updated.x,
-                  y: updated.y,
-                  w: updated.w,
-                  h: updated.h,
-                }
-              : widget
-          }),
-        }))
-      },
-
-      setWidgetPosition: (instanceId, position) => {
-        set((state) => ({
-          widgets: state.widgets.map((widget) =>
-            widget.instanceId === instanceId
-              ? { ...widget, ...position }
-              : widget,
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
+            widgets.map((widget) =>
+              widget.instanceId === instanceId ? { ...widget, ...position } : widget,
+            ),
           ),
         }))
       },
 
-      replaceWidgets: (widgets) => set({ widgets }),
+      addDashboard: (name) => {
+        set((state) => {
+          if (state.dashboards.length >= MAX_DASHBOARDS) return state
+          const id = nanoid(8)
+          return {
+            dashboards: [...state.dashboards, { id, name, widgets: [] }],
+            activeDashboardId: id,
+          }
+        })
+      },
+
+      renameDashboard: (id, name) => {
+        set((state) => ({
+          dashboards: state.dashboards.map((dashboard) =>
+            dashboard.id === id ? { ...dashboard, name } : dashboard,
+          ),
+        }))
+      },
+
+      removeDashboard: (id) => {
+        const { dashboards } = get()
+        if (dashboards.length <= 1) return
+        const removedInstanceIds =
+          dashboards.find((dashboard) => dashboard.id === id)?.widgets.map((widget) => widget.instanceId) ?? []
+        set((state) => {
+          const remaining = state.dashboards.filter((dashboard) => dashboard.id !== id)
+          const activeDashboardId =
+            state.activeDashboardId === id ? remaining[0].id : state.activeDashboardId
+          return { dashboards: remaining, activeDashboardId }
+        })
+        if (removedInstanceIds.length > 0) {
+          useWidgetStateStore.getState().resetInstances(removedInstanceIds)
+        }
+      },
+
+      setActiveDashboardId: (id) => {
+        set((state) =>
+          state.dashboards.some((dashboard) => dashboard.id === id)
+            ? { activeDashboardId: id }
+            : state,
+        )
+      },
+
+      importWorkspace: (dashboards, activeDashboardId) => set({ dashboards, activeDashboardId }),
     }),
     {
       name: DASHBOARD_STORAGE_KEY,
       version: DASHBOARD_STORAGE_VERSION,
-      partialize: (state) => ({ widgets: state.widgets }),
+      partialize: (state) => ({
+        dashboards: state.dashboards,
+        activeDashboardId: state.activeDashboardId,
+      }),
+      migrate: migrateDashboardState,
     },
   ),
 )

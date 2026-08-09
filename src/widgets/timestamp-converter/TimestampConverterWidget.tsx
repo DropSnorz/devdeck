@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 type Unit = 'seconds' | 'milliseconds'
@@ -25,16 +25,16 @@ function unitFromEpochMs(ms: number, unit: Unit): number {
 }
 
 export default function TimestampConverterWidget({ instanceId }: WidgetProps) {
-  const [unit, setUnit] = useState<Unit>('seconds')
-  const [epochInput, setEpochInput] = useState(() =>
+  const [unit, setUnit] = useWidgetState<Unit>(instanceId, 'unit', 'seconds')
+  const [epochInput, setEpochInput] = useWidgetState(instanceId, 'epochInput', () =>
     String(unitFromEpochMs(Date.now(), 'seconds')),
   )
-  const [dateInput, setDateInput] = useState(() =>
+  const [dateInput, setDateInput] = useWidgetState(instanceId, 'dateInput', () =>
     toLocalDatetimeInputValue(new Date()),
   )
   // "Now" isn't a fixed default to diff against — capture the mount-time
   // value once instead (state, not a ref: refs can't be read during render).
-  const [initialEpoch] = useState(epochInput)
+  const [initialEpoch] = useWidgetState(instanceId, 'initialEpoch', epochInput)
   useWidgetDirty(instanceId, epochInput !== initialEpoch)
 
   const epochMs = (() => {

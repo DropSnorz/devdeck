@@ -19,15 +19,17 @@ interface ShareModalProps {
 const QR_LENGTH_LIMIT = 1500
 
 export function ShareModal({ open, onClose }: ShareModalProps) {
-  const widgets = useDashboardStore((state) => state.widgets)
+  const dashboards = useDashboardStore((state) => state.dashboards)
+  const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
   const qrContainerRef = useRef<HTMLDivElement>(null)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
 
   const shareUrl = useMemo(
-    () => (open ? buildShareUrl(widgets) : ''),
-    [open, widgets],
+    () => (open ? buildShareUrl(dashboards, activeDashboardId) : ''),
+    [open, dashboards, activeDashboardId],
   )
   const qrEligible = shareUrl.length <= QR_LENGTH_LIMIT
+  const totalWidgets = dashboards.reduce((sum, dashboard) => sum + dashboard.widgets.length, 0)
 
   const handleCopy = async () => {
     try {
@@ -49,10 +51,12 @@ export function ShareModal({ open, onClose }: ShareModalProps) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Share this dashboard">
+    <Modal open={open} onClose={onClose} title="Share your workspace">
       <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-        Anyone who opens this link gets the same widget layout on their own
-        device — not your widgets' content.
+        This link contains all {dashboards.length} dashboard
+        {dashboards.length === 1 ? '' : 's'} ({totalWidgets} widget
+        {totalWidgets === 1 ? '' : 's'} total). Anyone who opens it gets the same layout on
+        their own device — not your widgets' content.
       </p>
 
       <div className="mb-4 flex items-center gap-2">

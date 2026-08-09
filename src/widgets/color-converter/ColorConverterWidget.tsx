@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import { colord, type Colord } from 'colord'
 import { CopyButton } from '@/components/CopyButton'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 const INITIAL = colord('#3b82f6')
@@ -19,10 +19,10 @@ function formatHsl(c: Colord): string {
 type Field = 'hex' | 'rgb' | 'hsl' | 'none'
 
 export default function ColorConverterWidget({ instanceId }: WidgetProps) {
-  const [color, setColor] = useState<Colord>(INITIAL)
-  const [hexInput, setHexInput] = useState(INITIAL.toHex())
-  const [rgbInput, setRgbInput] = useState(formatRgb(INITIAL))
-  const [hslInput, setHslInput] = useState(formatHsl(INITIAL))
+  const [color, setColor] = useWidgetState<Colord>(instanceId, 'color', INITIAL)
+  const [hexInput, setHexInput] = useWidgetState(instanceId, 'hexInput', INITIAL.toHex())
+  const [rgbInput, setRgbInput] = useWidgetState(instanceId, 'rgbInput', formatRgb(INITIAL))
+  const [hslInput, setHslInput] = useWidgetState(instanceId, 'hslInput', formatHsl(INITIAL))
   useWidgetDirty(instanceId, hexInput !== INITIAL.toHex())
 
   const applyColor = (next: Colord, editedField: Field) => {

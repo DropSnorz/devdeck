@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 type ViewMode = 'tree' | 'pretty' | 'minified'
@@ -12,8 +13,8 @@ type ViewMode = 'tree' | 'pretty' | 'minified'
 const SAMPLE = '{\n  "hello": "world"\n}'
 
 export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
-  const [input, setInput] = useState(SAMPLE)
-  const [viewMode, setViewMode] = useState<ViewMode>('tree')
+  const [input, setInput] = useWidgetState(instanceId, 'input', SAMPLE)
+  const [viewMode, setViewMode] = useWidgetState<ViewMode>(instanceId, 'viewMode', 'tree')
   const isDark = useIsDarkTheme()
   useWidgetDirty(instanceId, input !== SAMPLE)
 

@@ -3,26 +3,29 @@ import { Command } from 'cmdk'
 import { Plus, Share2 } from 'lucide-react'
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
-import { WIDGET_LIST } from '@/widgets/registry'
-import { ToolBrowserModal } from '@/tool-browser/ToolBrowserModal'
+import { groupWidgetsByCategory } from '@/widgets/categories'
+import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { ShareModal } from '@/dashboard/ShareModal'
 import { useCommandPaletteStore } from './useCommandPaletteStore'
 
 const ITEM_CLASS =
   'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 aria-selected:bg-slate-100 dark:text-slate-200 dark:aria-selected:bg-slate-800'
 const GROUP_HEADING_CLASS =
-  'px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-slate-400'
+  'px-2 pb-1 pt-2 text-[10px] font-medium text-slate-400'
 
-/** Cmd/Ctrl+K launcher. Reuses the tool browser and share modal for their
- * respective actions rather than duplicating that logic; its own job is
- * fast fuzzy search plus the "open any tool fullscreen, pinned or not"
- * shortcut described in the product brief. */
+/** Cmd/Ctrl+K launcher — fast fuzzy search over every widget, grouped by
+ * category (same grouping the sidebar uses). Each row does double duty:
+ * selecting it (Enter, or clicking the row) previews the widget fullscreen
+ * without pinning it; the Add button pins it to the active dashboard
+ * directly, no separate "browse and add" modal needed. Reuses the share
+ * modal for its own action rather than duplicating that logic. */
 export function CommandPalette() {
   const open = useCommandPaletteStore((state) => state.open)
   const setOpen = useCommandPaletteStore((state) => state.setOpen)
   const toggle = useCommandPaletteStore((state) => state.toggle)
-  const [browserOpen, setBrowserOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
+  const addWidget = useDashboardStore((state) => state.addWidget)
   const openEphemeral = useOverlayStore((state) => state.openEphemeral)
 
   useKeyboardShortcut('k', toggle)
@@ -50,16 +53,6 @@ export function CommandPalette() {
             <Command.Item
               onSelect={() => {
                 setOpen(false)
-                setBrowserOpen(true)
-              }}
-              className={ITEM_CLASS}
-            >
-              <Plus className="size-3.5 text-slate-400" />
-              Add a widget…
-            </Command.Item>
-            <Command.Item
-              onSelect={() => {
-                setOpen(false)
                 setShareOpen(true)
               }}
               className={ITEM_CLASS}
@@ -69,36 +62,49 @@ export function CommandPalette() {
             </Command.Item>
           </Command.Group>
 
-          <Command.Group
-            heading="Open tool fullscreen"
-            className={GROUP_HEADING_CLASS}
-          >
-            {WIDGET_LIST.map((widget) => {
-              const Icon = widget.icon
-              return (
-                <Command.Item
-                  key={widget.id}
-                  value={widget.name}
-                  keywords={widget.keywords}
-                  onSelect={() => {
-                    openEphemeral(widget.id)
-                    setOpen(false)
-                  }}
-                  className={ITEM_CLASS}
-                >
-                  <Icon className="size-3.5 text-slate-400" />
-                  {widget.name}
-                </Command.Item>
-              )
-            })}
-          </Command.Group>
+          {groupWidgetsByCategory().map((group) => (
+            <Command.Group key={group.category} heading={group.label} className={GROUP_HEADING_CLASS}>
+              {group.widgets.map((widget) => {
+                const Icon = widget.icon
+                return (
+                  <Command.Item
+                    key={widget.id}
+                    value={widget.name}
+                    keywords={widget.keywords}
+                    onSelect={() => {
+                      openEphemeral(widget.id)
+                      setOpen(false)
+                    }}
+                    className={ITEM_CLASS}
+                  >
+                    <Icon className="size-3.5 shrink-0 text-slate-400" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate">{widget.name}</p>
+                      <p className="truncate text-xs text-slate-400">{widget.description}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        // Don't also trigger the row's own onSelect (preview)
+                        // — this is a second, independent action.
+                        event.stopPropagation()
+                        addWidget(activeDashboardId, widget.id)
+                        setOpen(false)
+                      }}
+                      aria-label={`Add ${widget.name} to dashboard`}
+                      title="Add to dashboard"
+                      className="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                    >
+                      <Plus className="size-3.5" />
+                    </button>
+                  </Command.Item>
+                )
+              })}
+            </Command.Group>
+          ))}
         </Command.List>
       </Command.Dialog>
 
-      <ToolBrowserModal
-        open={browserOpen}
-        onClose={() => setBrowserOpen(false)}
-      />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   )

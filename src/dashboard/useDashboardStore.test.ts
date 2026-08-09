@@ -1,116 +1,263 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useDashboardStore } from './useDashboardStore'
+import { act, renderHook } from '@testing-library/react'
+import type { Dashboard } from '@/types/layout'
+import { useWidgetState } from '@/widgets/useWidgetState'
+import { MAX_DASHBOARDS, migrateDashboardState, useDashboardStore } from './useDashboardStore'
 
-describe('useDashboardStore', () => {
-  beforeEach(() => {
-    // The store seeds a starter layout on first import; reset to empty
-    // before each test so tests don't leak state into one another.
-    useDashboardStore.setState({ widgets: [] })
+const DASHBOARD_A = 'dashboard-a'
+const DASHBOARD_B = 'dashboard-b'
+
+function twoEmptyDashboards(): Dashboard[] {
+  return [
+    { id: DASHBOARD_A, name: 'A', widgets: [] },
+    { id: DASHBOARD_B, name: 'B', widgets: [] },
+  ]
+}
+
+beforeEach(() => {
+  useDashboardStore.setState({
+    dashboards: twoEmptyDashboards(),
+    activeDashboardId: DASHBOARD_A,
+  })
+})
+
+describe('useDashboardStore — widget actions are scoped per dashboard', () => {
+  it('addWidget appends a correctly sized instance to only the given dashboard', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'uuid-generator')
+
+    const { dashboards } = useDashboardStore.getState()
+    const dashboardA = dashboards.find((d) => d.id === DASHBOARD_A)!
+    const dashboardB = dashboards.find((d) => d.id === DASHBOARD_B)!
+
+    expect(dashboardA.widgets).toHaveLength(1)
+    expect(dashboardA.widgets[0]).toMatchObject({ widgetId: 'uuid-generator', x: 0, y: 0 })
+    expect(dashboardB.widgets).toHaveLength(0)
   })
 
-  it('addWidget appends a new instance sized from the widget definition', () => {
-    useDashboardStore.getState().addWidget('uuid-generator')
-    const { widgets } = useDashboardStore.getState()
-    expect(widgets).toHaveLength(1)
-    expect(widgets[0]).toMatchObject({
-      widgetId: 'uuid-generator',
-      x: 0,
-      y: 0,
-      w: 2,
-      h: 3,
-    })
+  it('addWidget silently ignores an unknown widget id', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'not-a-real-widget')
+
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toHaveLength(0)
   })
 
-  it('addWidget ignores an unknown widget id', () => {
-    useDashboardStore.getState().addWidget('does-not-exist')
-    expect(useDashboardStore.getState().widgets).toHaveLength(0)
+  it('addWidget stacks new widgets below existing ones in the same dashboard', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+
+    const [first, second] = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets
+    expect(second.y).toBeGreaterThanOrEqual(first.y + first.h)
   })
 
-  it('addWidget stacks each new widget below the ones already there', () => {
-    useDashboardStore.getState().addWidget('uuid-generator')
-    useDashboardStore.getState().addWidget('base64')
-    const { widgets } = useDashboardStore.getState()
-    expect(widgets[1].y).toBe(widgets[0].y + widgets[0].h)
+  it('addWidgetAt places a widget at the given position, scoped to the dashboard', () => {
+    useDashboardStore.getState().addWidgetAt(DASHBOARD_A, 'base64', { x: 3, y: 2, w: 2, h: 2 })
+
+    const dashboardA = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!
+    expect(dashboardA.widgets).toEqual([
+      expect.objectContaining({ widgetId: 'base64', x: 3, y: 2, w: 2, h: 2 }),
+    ])
   })
 
-  it('removeWidget removes only the targeted instance', () => {
-    useDashboardStore.getState().addWidget('uuid-generator')
-    useDashboardStore.getState().addWidget('base64')
-    const [first] = useDashboardStore.getState().widgets
-    useDashboardStore.getState().removeWidget(first.instanceId)
-    const { widgets } = useDashboardStore.getState()
-    expect(widgets).toHaveLength(1)
-    expect(widgets[0].widgetId).toBe('base64')
+  it('addWidgetAt silently ignores an unknown widget id', () => {
+    useDashboardStore.getState().addWidgetAt(DASHBOARD_A, 'not-a-real-widget', { x: 0, y: 0, w: 2, h: 2 })
+
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toHaveLength(0)
   })
 
-  it('applyLayoutUpdate updates position/size for matching instances only', () => {
-    useDashboardStore.getState().addWidget('uuid-generator')
-    useDashboardStore.getState().addWidget('base64')
-    const [first, second] = useDashboardStore.getState().widgets
+  it('removeWidget removes only the targeted instance from the targeted dashboard', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    useDashboardStore.getState().addWidget(DASHBOARD_B, 'base64')
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+      .instanceId
+
+    useDashboardStore.getState().removeWidget(DASHBOARD_A, instanceId)
+
+    const { dashboards } = useDashboardStore.getState()
+    expect(dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toHaveLength(0)
+    expect(dashboards.find((d) => d.id === DASHBOARD_B)!.widgets).toHaveLength(1)
+  })
+
+  it('applyLayoutUpdate updates position/size of matching instances, scoped to the dashboard', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+      .instanceId
+
     useDashboardStore
       .getState()
-      .applyLayoutUpdate([{ i: first.instanceId, x: 5, y: 3, w: 4, h: 4 }])
-    const { widgets } = useDashboardStore.getState()
-    expect(widgets[0]).toMatchObject({ x: 5, y: 3, w: 4, h: 4 })
-    expect(widgets[1]).toMatchObject({
-      x: second.x,
-      y: second.y,
-      w: second.w,
-      h: second.h,
+      .applyLayoutUpdate(DASHBOARD_A, [{ i: instanceId, x: 5, y: 5, w: 3, h: 3 }])
+
+    const widget = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+    expect(widget).toMatchObject({ x: 5, y: 5, w: 3, h: 3 })
+  })
+
+  it('setWidgetPosition patches a single instance, scoped to the dashboard', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+      .instanceId
+
+    useDashboardStore.getState().setWidgetPosition(DASHBOARD_A, instanceId, { x: 1, y: 1, w: 4, h: 4 })
+
+    const widget = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+    expect(widget).toMatchObject({ x: 1, y: 1, w: 4, h: 4 })
+  })
+
+  it('widgets added to one dashboard never leak into another dashboard', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'uuid-generator')
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    useDashboardStore.getState().addWidget(DASHBOARD_B, 'json-formatter')
+
+    const { dashboards } = useDashboardStore.getState()
+    const dashboardA = dashboards.find((d) => d.id === DASHBOARD_A)!
+    const dashboardB = dashboards.find((d) => d.id === DASHBOARD_B)!
+
+    expect(dashboardA.widgets.map((w) => w.widgetId)).toEqual(['uuid-generator', 'base64'])
+    expect(dashboardB.widgets.map((w) => w.widgetId)).toEqual(['json-formatter'])
+  })
+
+  it('touching one dashboard leaves every other dashboard object reference untouched', () => {
+    const dashboardBBefore = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!
+
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+
+    const dashboardBAfter = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!
+    expect(dashboardBAfter).toBe(dashboardBBefore)
+  })
+
+  it('removeWidget also clears the removed instance from useWidgetState, so it cannot leak', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+      .instanceId
+    const content = renderHook(() => useWidgetState(instanceId, 'input', ''))
+    act(() => content.result.current[1]('typed before deletion'))
+
+    useDashboardStore.getState().removeWidget(DASHBOARD_A, instanceId)
+
+    const contentAfter = renderHook(() => useWidgetState(instanceId, 'input', 'fresh-default'))
+    expect(contentAfter.result.current[0]).toBe('fresh-default')
+  })
+})
+
+describe('useDashboardStore — dashboard management', () => {
+  it('addDashboard appends a new dashboard and makes it active', () => {
+    useDashboardStore.getState().addDashboard('Extra')
+
+    const { dashboards, activeDashboardId } = useDashboardStore.getState()
+    expect(dashboards).toHaveLength(3)
+    const added = dashboards[2]
+    expect(added.name).toBe('Extra')
+    expect(added.widgets).toEqual([])
+    expect(activeDashboardId).toBe(added.id)
+  })
+
+  it('addDashboard refuses past the MAX_DASHBOARDS cap', () => {
+    while (useDashboardStore.getState().dashboards.length < MAX_DASHBOARDS) {
+      useDashboardStore.getState().addDashboard('Filler')
+    }
+    const beforeCount = useDashboardStore.getState().dashboards.length
+    expect(beforeCount).toBe(MAX_DASHBOARDS)
+
+    useDashboardStore.getState().addDashboard('One too many')
+
+    expect(useDashboardStore.getState().dashboards).toHaveLength(MAX_DASHBOARDS)
+  })
+
+  it('renameDashboard updates only the targeted dashboard name', () => {
+    useDashboardStore.getState().renameDashboard(DASHBOARD_A, 'Renamed')
+
+    const { dashboards } = useDashboardStore.getState()
+    expect(dashboards.find((d) => d.id === DASHBOARD_A)!.name).toBe('Renamed')
+    expect(dashboards.find((d) => d.id === DASHBOARD_B)!.name).toBe('B')
+  })
+
+  it('removeDashboard refuses to remove the last remaining dashboard', () => {
+    useDashboardStore.setState({ dashboards: [{ id: DASHBOARD_A, name: 'A', widgets: [] }], activeDashboardId: DASHBOARD_A })
+
+    useDashboardStore.getState().removeDashboard(DASHBOARD_A)
+
+    expect(useDashboardStore.getState().dashboards).toHaveLength(1)
+  })
+
+  it('removeDashboard reassigns activeDashboardId when removing the active dashboard', () => {
+    useDashboardStore.setState({ activeDashboardId: DASHBOARD_A })
+
+    useDashboardStore.getState().removeDashboard(DASHBOARD_A)
+
+    const { dashboards, activeDashboardId } = useDashboardStore.getState()
+    expect(dashboards).toHaveLength(1)
+    expect(dashboards[0].id).toBe(DASHBOARD_B)
+    expect(activeDashboardId).toBe(DASHBOARD_B)
+  })
+
+  it('removeDashboard leaves activeDashboardId untouched when removing a non-active dashboard', () => {
+    useDashboardStore.setState({ activeDashboardId: DASHBOARD_A })
+
+    useDashboardStore.getState().removeDashboard(DASHBOARD_B)
+
+    const { dashboards, activeDashboardId } = useDashboardStore.getState()
+    expect(dashboards).toHaveLength(1)
+    expect(activeDashboardId).toBe(DASHBOARD_A)
+  })
+
+  it('setActiveDashboardId switches to a known dashboard', () => {
+    useDashboardStore.getState().setActiveDashboardId(DASHBOARD_B)
+
+    expect(useDashboardStore.getState().activeDashboardId).toBe(DASHBOARD_B)
+  })
+
+  it('setActiveDashboardId ignores an unknown dashboard id', () => {
+    useDashboardStore.getState().setActiveDashboardId('not-a-real-dashboard')
+
+    expect(useDashboardStore.getState().activeDashboardId).toBe(DASHBOARD_A)
+  })
+
+  it('importWorkspace replaces the entire dashboards list and active id', () => {
+    const incoming: Dashboard[] = [{ id: 'imported', name: 'Imported', widgets: [] }]
+
+    useDashboardStore.getState().importWorkspace(incoming, 'imported')
+
+    expect(useDashboardStore.getState().dashboards).toEqual(incoming)
+    expect(useDashboardStore.getState().activeDashboardId).toBe('imported')
+  })
+
+  it('removeDashboard also clears every one of its widgets from useWidgetState', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_B, 'base64')
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!.widgets[0]
+      .instanceId
+    const content = renderHook(() => useWidgetState(instanceId, 'input', ''))
+    act(() => content.result.current[1]('typed before deletion'))
+
+    useDashboardStore.getState().removeDashboard(DASHBOARD_B)
+
+    const contentAfter = renderHook(() => useWidgetState(instanceId, 'input', 'fresh-default'))
+    expect(contentAfter.result.current[0]).toBe('fresh-default')
+  })
+})
+
+describe('migrateDashboardState — v1 to v2 upgrade', () => {
+  it('wraps a pre-tabs { widgets } blob into a single "Main" dashboard', () => {
+    const legacy = {
+      widgets: [{ instanceId: 'legacy-1', widgetId: 'base64', x: 0, y: 0, w: 2, h: 2 }],
+    }
+
+    const migrated = migrateDashboardState(legacy, 1)
+
+    expect(migrated).toEqual({
+      dashboards: [{ id: 'main', name: 'Main', widgets: legacy.widgets }],
+      activeDashboardId: 'main',
     })
   })
 
-  it('setWidgetPosition patches a single instance (the keyboard move/resize path)', () => {
-    useDashboardStore.getState().addWidget('uuid-generator')
-    const [instance] = useDashboardStore.getState().widgets
-    useDashboardStore.getState().setWidgetPosition(instance.instanceId, {
-      x: 1,
-      y: 1,
-      w: 3,
-      h: 3,
-    })
-    expect(useDashboardStore.getState().widgets[0]).toMatchObject({
-      x: 1,
-      y: 1,
-      w: 3,
-      h: 3,
-    })
+  it('falls back to the starter widgets when the legacy blob has no widgets array', () => {
+    const migrated = migrateDashboardState({}, 1)
+
+    expect(migrated.dashboards).toHaveLength(1)
+    expect(migrated.dashboards[0].id).toBe('main')
+    expect(migrated.dashboards[0].widgets.length).toBeGreaterThan(0)
+    expect(migrated.activeDashboardId).toBe('main')
   })
 
-  it('addWidgetAt places the instance at the given position instead of stacking it', () => {
-    useDashboardStore
-      .getState()
-      .addWidgetAt('json-formatter', { x: 3, y: 2, w: 4, h: 4 })
-    const { widgets } = useDashboardStore.getState()
-    expect(widgets).toHaveLength(1)
-    expect(widgets[0]).toMatchObject({
-      widgetId: 'json-formatter',
-      x: 3,
-      y: 2,
-      w: 4,
-      h: 4,
-    })
-  })
+  it('passes an already-current (version 2) blob through unchanged', () => {
+    const current = { dashboards: twoEmptyDashboards(), activeDashboardId: DASHBOARD_A }
 
-  it('addWidgetAt ignores an unknown widget id (the sidebar-drop rejection path)', () => {
-    useDashboardStore
-      .getState()
-      .addWidgetAt('does-not-exist', { x: 0, y: 0, w: 2, h: 2 })
-    expect(useDashboardStore.getState().widgets).toHaveLength(0)
-  })
-
-  it('hasWidget reflects whether a widget type is currently on the dashboard', () => {
-    expect(useDashboardStore.getState().hasWidget('uuid-generator')).toBe(false)
-    useDashboardStore.getState().addWidget('uuid-generator')
-    expect(useDashboardStore.getState().hasWidget('uuid-generator')).toBe(true)
-  })
-
-  it('replaceWidgets swaps the entire layout at once (the share-link accept path)', () => {
-    useDashboardStore.getState().addWidget('uuid-generator')
-    const incoming = [
-      { instanceId: 'shared-1', widgetId: 'base64', x: 0, y: 0, w: 2, h: 2 },
-    ]
-    useDashboardStore.getState().replaceWidgets(incoming)
-    expect(useDashboardStore.getState().widgets).toEqual(incoming)
+    expect(migrateDashboardState(current, 2)).toBe(current)
   })
 })

@@ -1,16 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 type Direction = 'encode' | 'decode'
 type Mode = 'component' | 'full-uri'
 
 export default function UrlEncoderWidget({ instanceId }: WidgetProps) {
-  const [direction, setDirection] = useState<Direction>('encode')
-  const [mode, setMode] = useState<Mode>('component')
-  const [input, setInput] = useState('')
+  const [direction, setDirection] = useWidgetState<Direction>(instanceId, 'direction', 'encode')
+  const [mode, setMode] = useWidgetState<Mode>(instanceId, 'mode', 'component')
+  const [input, setInput] = useWidgetState(instanceId, 'input', '')
   useWidgetDirty(instanceId, input.length > 0)
 
   const { output, error } = useMemo(() => {

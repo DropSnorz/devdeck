@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Plus, Search, Share2 } from 'lucide-react'
-import { ToolBrowserModal } from '@/tool-browser/ToolBrowserModal'
+import { Search, Share2 } from 'lucide-react'
 import { useCommandPaletteStore } from '@/command-palette/useCommandPaletteStore'
 import { ThemeToggle } from '@/theme/ThemeToggle'
 import { ShareModal } from './ShareModal'
 
+/** "Search tools" is the single entry point for finding *and* adding a
+ * widget now — the command palette's own rows carry an Add button, so there
+ * used to be a separate "Add widget" button/modal here that's now
+ * redundant. */
 export function DashboardToolbar() {
-  const [browserOpen, setBrowserOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const setPaletteOpen = useCommandPaletteStore((state) => state.setOpen)
 
@@ -31,19 +33,7 @@ export function DashboardToolbar() {
         <Share2 className="size-3.5" />
         Share
       </button>
-      <button
-        type="button"
-        onClick={() => setBrowserOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
-      >
-        <Plus className="size-3.5" />
-        Add widget
-      </button>
       <ThemeToggle />
-      <ToolBrowserModal
-        open={browserOpen}
-        onClose={() => setBrowserOpen(false)}
-      />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   )

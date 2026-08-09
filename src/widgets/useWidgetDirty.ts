@@ -1,36 +1,47 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { create } from 'zustand'
+import { useWidgetStateStore } from './useWidgetState'
 
 interface WidgetDirtyState {
   dirtyByInstance: Record<string, boolean>
-  /** Bumped by `resetAll`; folded into each widget's `key` wherever it's
-   * rendered so changing it forces a remount — the only way to snap a
-   * widget's local `useState` back to its initial values from the outside. */
-  generation: number
+  /** Per-instance, not global — bumping just one instance's nonce is what
+   * forces just that widget to remount (see `useWidgetResetNonce`). Needed
+   * because every dashboard tab stays mounted at once now: a single global
+   * counter would reset every widget on every tab simultaneously instead of
+   * just the ones on the tab you're actually looking at. */
+  resetNonceByInstance: Record<string, number>
   setDirty: (instanceId: string, isDirty: boolean) => void
-  resetAll: () => void
+  resetWidgets: (instanceIds: string[]) => void
 }
 
 const useWidgetDirtyStore = create<WidgetDirtyState>((set) => ({
   dirtyByInstance: {},
-  generation: 0,
+  resetNonceByInstance: {},
   setDirty: (instanceId, isDirty) =>
     set((state) => {
       if (state.dirtyByInstance[instanceId] === isDirty) return state
-      return {
-        dirtyByInstance: { ...state.dirtyByInstance, [instanceId]: isDirty },
-      }
+      return { dirtyByInstance: { ...state.dirtyByInstance, [instanceId]: isDirty } }
     }),
-  // Clears the map eagerly rather than waiting for each remounted widget's
-  // effect to report back in — the indicator disappears the instant you click.
-  resetAll: () =>
-    set((state) => ({ generation: state.generation + 1, dirtyByInstance: {} })),
+  // Clears the given instances' dirty flags eagerly rather than waiting for
+  // each remounted widget's effect to report back in — the indicator
+  // disappears the instant you click.
+  resetWidgets: (instanceIds) =>
+    set((state) => {
+      const nextNonce = { ...state.resetNonceByInstance }
+      const nextDirty = { ...state.dirtyByInstance }
+      for (const instanceId of instanceIds) {
+        nextNonce[instanceId] = (nextNonce[instanceId] ?? 0) + 1
+        delete nextDirty[instanceId]
+      }
+      return { resetNonceByInstance: nextNonce, dirtyByInstance: nextDirty }
+    }),
 }))
 
 /** A widget calls this with its own definition of "has moved from default"
  * (there's no generic way to detect that — every widget's default differs)
  * to report its dirty status. Cleans up on unmount, which covers both real
- * removal and the remount `resetAll` triggers via `generation`. */
+ * removal and the remount `resetWidgets` triggers via the per-instance
+ * nonce. */
 export function useWidgetDirty(instanceId: string, isDirty: boolean): void {
   useEffect(() => {
     useWidgetDirtyStore.getState().setDirty(instanceId, isDirty)
@@ -40,25 +51,36 @@ export function useWidgetDirty(instanceId: string, isDirty: boolean): void {
 
 /** Read by WidgetShell to decide whether to show the border pulse + dot. */
 export function useIsWidgetDirty(instanceId: string): boolean {
-  return useWidgetDirtyStore(
-    (state) => state.dirtyByInstance[instanceId] ?? false,
+  return useWidgetDirtyStore((state) => state.dirtyByInstance[instanceId] ?? false)
+}
+
+/** True if any of the given instances — typically "the active dashboard's
+ * widgets" — is currently dirty. Read by the header's "Clear state" button
+ * to disable itself when there's nothing to clear on the tab you're on. */
+export function useAnyWidgetDirty(instanceIds: string[]): boolean {
+  return useWidgetDirtyStore((state) => instanceIds.some((id) => state.dirtyByInstance[id]))
+}
+
+/** Read by WidgetGridItem/WidgetOverlay for the widget element's `key`. */
+export function useWidgetResetNonce(instanceId: string): number {
+  return useWidgetDirtyStore((state) => state.resetNonceByInstance[instanceId] ?? 0)
+}
+
+/** The header's "Clear state" button calls this with the active dashboard's
+ * instance ids. Bumping the nonce (forces a remount) alone isn't enough on
+ * its own — a fresh mount would otherwise still read whatever's left in
+ * useWidgetState's store for that instance, so both have to be cleared
+ * together. The remount still matters even with the store cleared: it's
+ * what makes any impure/derived default (e.g. TimestampConverterWidget's
+ * `Date.now()`-based initial value) recompute instead of reusing whatever
+ * was cached at the widget's original mount. */
+export function useResetWidgets(): (instanceIds: string[]) => void {
+  const resetDirtyAndNonce = useWidgetDirtyStore((state) => state.resetWidgets)
+  return useCallback(
+    (instanceIds: string[]) => {
+      resetDirtyAndNonce(instanceIds)
+      useWidgetStateStore.getState().resetInstances(instanceIds)
+    },
+    [resetDirtyAndNonce],
   )
-}
-
-/** Read by the header's "Clear state" button to disable itself when there's
- * nothing to clear. */
-export function useAnyWidgetDirty(): boolean {
-  return useWidgetDirtyStore((state) =>
-    Object.values(state.dirtyByInstance).some(Boolean),
-  )
-}
-
-/** Read by PortalableWidget/WidgetOverlay for the widget element's `key`. */
-export function useWidgetResetGeneration(): number {
-  return useWidgetDirtyStore((state) => state.generation)
-}
-
-/** The header's "Clear state" button calls this. */
-export function useResetAllWidgets(): () => void {
-  return useWidgetDirtyStore((state) => state.resetAll)
 }

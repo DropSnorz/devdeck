@@ -1,25 +1,24 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { WidgetShell } from '@/widget-shell/WidgetShell'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
-import { useWidgetResetGeneration } from '@/widgets/useWidgetDirty'
-import { OverlaySlotContext } from './OverlaySlotContext'
+import { useWidgetResetNonce } from '@/widgets/useWidgetDirty'
 import { useOverlayStore } from './useOverlayStore'
 
 /** Always-mounted fullscreen overlay chrome (backdrop + centered panel),
- * toggled visible via CSS rather than conditionally rendered — so the DOM
- * node it exposes through `OverlaySlotContext` is a stable portal target for
- * `PortalableWidget` even while nothing is expanded.
+ * toggled visible via CSS rather than conditionally rendered.
  *
- * Ephemeral tools (opened from the tool browser / command palette without
- * being pinned to the dashboard) render directly inside this chrome instead
- * — they have no grid-cell "home" to portal from, so there's nothing to
- * preserve on close; they simply mount and unmount. */
+ * Pinned and ephemeral targets are rendered the exact same way — mount
+ * `<WidgetComponent instanceId={target.instanceId} .../>` directly, no
+ * portal involved. Content lives in `useWidgetState`'s store keyed by
+ * instanceId, so this mount and the grid cell's own independent mount of the
+ * same instanceId (see WidgetGridItem) just read/write the same entries;
+ * neither needs to hand the other a DOM node to survive. */
 export function WidgetOverlay({ children }: { children: ReactNode }) {
   const target = useOverlayStore((state) => state.target)
   const close = useOverlayStore((state) => state.close)
-  const [slotEl, setSlotEl] = useState<HTMLDivElement | null>(null)
-  const resetGeneration = useWidgetResetGeneration()
+  const definition = target ? WIDGET_REGISTRY[target.widgetId] : null
+  const resetNonce = useWidgetResetNonce(target?.instanceId ?? '')
 
   useEffect(() => {
     if (!target) return
@@ -30,15 +29,8 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [target, close])
 
-  const ephemeralWidget =
-    target?.kind === 'ephemeral' ? WIDGET_REGISTRY[target.widgetId] : null
-  const EphemeralComponent = ephemeralWidget?.component
-  const ephemeralInstanceId = ephemeralWidget
-    ? `ephemeral-${ephemeralWidget.id}`
-    : ''
-
   return (
-    <OverlaySlotContext.Provider value={slotEl}>
+    <>
       {children}
       <div
         className={cn(
@@ -51,27 +43,23 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
           onClick={(event) => event.stopPropagation()}
           className="h-full max-h-[85vh] w-full max-w-5xl"
         >
-          {EphemeralComponent && ephemeralWidget ? (
+          {definition && target && (
             <WidgetShell
-              instanceId={ephemeralInstanceId}
-              title={ephemeralWidget.name}
-              icon={ephemeralWidget.icon}
+              instanceId={target.instanceId}
+              title={definition.name}
+              icon={definition.icon}
               isExpanded
               onToggleExpand={close}
             >
-              <EphemeralComponent
-                key={`${ephemeralInstanceId}-${resetGeneration}`}
-                instanceId={ephemeralInstanceId}
+              <definition.component
+                key={`${target.instanceId}-${resetNonce}`}
+                instanceId={target.instanceId}
                 mode="overlay"
               />
             </WidgetShell>
-          ) : (
-            // Portal target for an expanded pinned widget. Left as an empty,
-            // invisible box the rest of the time.
-            <div ref={setSlotEl} className="h-full w-full" />
           )}
         </div>
       </div>
-    </OverlaySlotContext.Provider>
+    </>
   )
 }

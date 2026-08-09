@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { cn } from '@/lib/cn'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 const FLAG_OPTIONS = ['g', 'i', 'm', 's'] as const
@@ -11,9 +12,9 @@ interface Segment {
 }
 
 export default function RegexTesterWidget({ instanceId }: WidgetProps) {
-  const [pattern, setPattern] = useState('')
-  const [flags, setFlags] = useState<string[]>(['g'])
-  const [text, setText] = useState('')
+  const [pattern, setPattern] = useWidgetState(instanceId, 'pattern', '')
+  const [flags, setFlags] = useWidgetState<string[]>(instanceId, 'flags', ['g'])
+  const [text, setText] = useWidgetState(instanceId, 'text', '')
   useWidgetDirty(instanceId, pattern.length > 0 || text.length > 0)
 
   const toggleFlag = (flag: string) => {
