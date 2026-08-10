@@ -9,6 +9,7 @@ import { hashGeneratorDefinition } from './hash-generator/definition'
 import { jwtDecoderDefinition } from './jwt-decoder/definition'
 import { regexTesterDefinition } from './regex-tester/definition'
 import { textCaseConverterDefinition } from './text-case-converter/definition'
+import { cronDefinition } from './cron/definition'
 
 /** Single source of truth for every widget DevDeck knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -23,6 +24,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   jwtDecoderDefinition,
   regexTesterDefinition,
   textCaseConverterDefinition,
+  cronDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> =
