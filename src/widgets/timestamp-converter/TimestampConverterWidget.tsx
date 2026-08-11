@@ -1,5 +1,10 @@
+import { useId } from 'react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { Field } from '@/components/Field'
+import { ErrorMessage } from '@/components/ErrorMessage'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -36,6 +41,8 @@ export default function TimestampConverterWidget({ instanceId }: WidgetProps) {
   // value once instead (state, not a ref: refs can't be read during render).
   const [initialEpoch] = useWidgetState(instanceId, 'initialEpoch', epochInput)
   useWidgetDirty(instanceId, epochInput !== initialEpoch)
+  const epochFieldId = useId()
+  const dateFieldId = useId()
 
   const epochMs = (() => {
     const n = Number(epochInput)
@@ -83,48 +90,47 @@ export default function TimestampConverterWidget({ instanceId }: WidgetProps) {
             { label: 'Milliseconds', value: 'milliseconds' },
           ]}
         />
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={handleNow}
-          className="rounded-md bg-slate-900 px-2 py-1 font-medium text-white dark:bg-slate-100 dark:text-slate-900"
+          className="h-auto rounded-md px-2 py-1"
         >
           Now
-        </button>
+        </Button>
       </div>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-slate-500 dark:text-slate-400">Epoch</span>
+      <Field label="Epoch" htmlFor={epochFieldId}>
         <div className="flex items-center gap-1">
-          <input
+          <Input
+            id={epochFieldId}
             value={epochInput}
             onChange={(event) => handleEpochChange(event.target.value)}
             spellCheck={false}
-            className="w-full rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+            className="w-full font-mono"
           />
           <CopyButton value={epochInput} label="" />
         </div>
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-slate-500 dark:text-slate-400">
-          Local date/time
-        </span>
-        <input
+      <Field label="Local date/time" htmlFor={dateFieldId}>
+        <Input
+          id={dateFieldId}
           type="datetime-local"
           step={1}
           value={dateInput}
           onChange={(event) => handleDateChange(event.target.value)}
-          className="w-full rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+          className="w-full font-mono"
         />
-      </label>
+      </Field>
 
       {isValid && date ? (
-        <div className="mt-auto space-y-0.5 rounded-md bg-slate-50 p-2 font-mono text-[11px] text-slate-600 dark:bg-slate-800/40 dark:text-slate-300">
+        <div className="mt-auto space-y-0.5 rounded-md bg-background p-2 font-mono text-[11px] text-foreground dark:bg-muted/40">
           <p>UTC: {date.toUTCString()}</p>
           <p>ISO: {date.toISOString()}</p>
         </div>
       ) : (
-        <p className="text-red-600 dark:text-red-400">Invalid timestamp</p>
+        <ErrorMessage>Invalid timestamp</ErrorMessage>
       )}
     </div>
   )

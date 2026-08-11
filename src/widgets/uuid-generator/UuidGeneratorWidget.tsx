@@ -8,6 +8,9 @@ import {
 } from 'uuid'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { ErrorMessage } from '@/components/ErrorMessage'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -112,40 +115,39 @@ export default function UuidGeneratorWidget({ instanceId }: WidgetProps) {
             className="flex-wrap"
           />
           {namespacePreset === 'custom' && (
-            <input
+            <Input
               value={customNamespace}
               onChange={(event) => setCustomNamespace(event.target.value)}
               placeholder="Namespace UUID…"
               spellCheck={false}
-              className="w-full rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+              className="w-full font-mono"
             />
           )}
-          <input
+          <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Name to hash…"
             spellCheck={false}
-            className="w-full rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+            className="w-full font-mono"
           />
           {!namespaceValid && (
-            <p className="text-red-600 dark:text-red-400">
-              Namespace must be a valid UUID
-            </p>
+            <ErrorMessage>Namespace must be a valid UUID</ErrorMessage>
           )}
         </div>
       )}
 
-      <button
+      <Button
         type="button"
+        size="sm"
         onClick={handleGenerate}
         disabled={!canGenerate}
-        className="inline-flex w-fit items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+        className="w-fit"
       >
         <RefreshCw className="size-3.5" />
         Generate
-      </button>
+      </Button>
       {uuids.length === 0 ? (
-        <p className="min-h-16 flex-1 text-xs text-slate-400">
+        <p className="min-h-16 flex-1 text-xs text-muted-foreground">
           Generated UUIDs will appear here.
         </p>
       ) : (
@@ -157,7 +159,7 @@ export default function UuidGeneratorWidget({ instanceId }: WidgetProps) {
           {uuids.map((uuid, index) => (
             <li
               key={`${uuid}-${index}`}
-              className="flex items-center justify-between gap-2 rounded px-2 py-1 font-mono text-xs hover:bg-slate-50 dark:hover:bg-slate-800/60"
+              className="flex items-center justify-between gap-2 rounded px-2 py-1 font-mono text-xs hover:bg-accent"
             >
               <span className="truncate">{uuid}</span>
               <CopyButton value={uuid} label="" className="shrink-0 px-1" />

@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { Modal } from '@/components/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { NumberField } from '@/components/NumberField'
 import type { GridPosition } from '@/dashboard/useDashboardStore'
 
@@ -39,52 +46,54 @@ export function GridPositionDialog({
   }
 
   return (
-    <Modal open onClose={onClose} title={`Move & resize — ${title}`}>
-      <div className="grid grid-cols-2 gap-3">
-        <NumberField
-          label="Column"
-          value={draft.x}
-          min={0}
-          max={Math.max(0, cols - draft.w)}
-          onChange={(x) => setDraft((prev) => ({ ...prev, x }))}
-        />
-        <NumberField
-          label="Row"
-          value={draft.y}
-          min={0}
-          onChange={(y) => setDraft((prev) => ({ ...prev, y }))}
-        />
-        <NumberField
-          label="Width (columns)"
-          value={draft.w}
-          min={minSize.w}
-          max={Math.min(maxSize.w, cols)}
-          onChange={(w) => setDraft((prev) => ({ ...prev, w }))}
-        />
-        <NumberField
-          label="Height (rows)"
-          value={draft.h}
-          min={minSize.h}
-          max={maxSize.h}
-          onChange={(h) => setDraft((prev) => ({ ...prev, h }))}
-        />
-      </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleApply}
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
-        >
-          Apply
-        </button>
-      </div>
-    </Modal>
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{`Move & resize — ${title}`}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField
+            label="Column"
+            value={draft.x}
+            min={0}
+            max={Math.max(0, cols - draft.w)}
+            onChange={(x) => setDraft((prev) => ({ ...prev, x }))}
+          />
+          <NumberField
+            label="Row"
+            value={draft.y}
+            min={0}
+            onChange={(y) => setDraft((prev) => ({ ...prev, y }))}
+          />
+          <NumberField
+            label="Width (columns)"
+            value={draft.w}
+            min={minSize.w}
+            max={Math.min(maxSize.w, cols)}
+            onChange={(w) => setDraft((prev) => ({ ...prev, w }))}
+          />
+          <NumberField
+            label="Height (rows)"
+            value={draft.h}
+            min={minSize.h}
+            max={maxSize.h}
+            onChange={(h) => setDraft((prev) => ({ ...prev, h }))}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleApply}>
+            Apply
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

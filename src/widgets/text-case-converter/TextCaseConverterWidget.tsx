@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { CopyButton } from '@/components/CopyButton'
+import { Input } from '@/components/ui/input'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -36,12 +37,12 @@ export default function TextCaseConverterWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <input
+      <Input
         value={input}
         onChange={(event) => setInput(event.target.value)}
         placeholder="Enter text…"
         spellCheck={false}
-        className="w-full rounded-md border border-slate-300 bg-transparent px-2 py-1 text-xs focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="w-full text-xs"
       />
       <ul className="min-h-0 flex-1 space-y-1 overflow-auto">
         {CONVERTERS.map(({ label, convert }) => {
@@ -49,10 +50,10 @@ export default function TextCaseConverterWidget({ instanceId }: WidgetProps) {
           return (
             <li
               key={label}
-              className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+              className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-accent"
             >
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   {label}
                 </p>
                 <p className="truncate font-mono text-xs">{output || '—'}</p>

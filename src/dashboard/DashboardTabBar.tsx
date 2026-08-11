@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { Modal } from '@/components/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { MAX_DASHBOARDS, useDashboardStore } from './useDashboardStore'
 
 /** Tab strip for switching between dashboards. Double-click a tab to rename
@@ -49,8 +56,8 @@ export function DashboardTabBar() {
             className={cn(
               'flex shrink-0 items-center rounded-md text-xs font-medium',
               isActive
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800',
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent',
             )}
           >
             {renamingId === dashboard.id ? (
@@ -79,61 +86,76 @@ export function DashboardTabBar() {
               </button>
             )}
             {showRemove && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => setPendingRemoveId(dashboard.id)}
                 aria-label={`Remove ${dashboard.name}`}
                 className={cn(
-                  'mr-1.5 rounded p-1',
-                  isActive
-                    ? 'hover:bg-white/20'
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-700',
+                  'mr-1.5 text-current hover:text-current',
+                  isActive ? 'hover:bg-white/20' : 'hover:bg-accent',
                 )}
               >
                 <X className="size-3" />
-              </button>
+              </Button>
             )}
           </div>
         )
       })}
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => addDashboard(`Dashboard ${dashboards.length + 1}`)}
         disabled={atDashboardLimit}
         aria-label="Add dashboard"
         title={atDashboardLimit ? `Up to ${MAX_DASHBOARDS} dashboards` : 'Add dashboard'}
-        className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        className="shrink-0 text-muted-foreground disabled:hover:bg-transparent"
       >
         <Plus className="size-3.5" />
-      </button>
+      </Button>
 
       {pendingRemove && (
-        <Modal open onClose={() => setPendingRemoveId(null)} title="Remove this dashboard?">
-          <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
-            This removes <strong className="font-semibold">{pendingRemove.name}</strong> and
-            every widget on it. This can&rsquo;t be undone.
-          </p>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setPendingRemoveId(null)}
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                removeDashboard(pendingRemove.id)
-                setPendingRemoveId(null)
-              }}
-              className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
-            >
-              Remove
-            </button>
-          </div>
-        </Modal>
+        <Dialog
+          open
+          onOpenChange={(next) => {
+            if (!next) setPendingRemoveId(null)
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Remove this dashboard?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This removes{' '}
+              <strong className="font-semibold text-foreground">
+                {pendingRemove.name}
+              </strong>{' '}
+              and every widget on it. This can&rsquo;t be undone.
+            </p>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPendingRemoveId(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  removeDashboard(pendingRemove.id)
+                  setPendingRemoveId(null)
+                }}
+              >
+                Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

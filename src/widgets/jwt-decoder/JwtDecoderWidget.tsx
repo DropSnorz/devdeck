@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
-import { cn } from '@/lib/cn'
+import { cn } from '@/lib/utils'
+import { ErrorMessage } from '@/components/ErrorMessage'
+import { Textarea } from '@/components/ui/textarea'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -56,25 +58,21 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <textarea
+      <Textarea
         value={token}
         onChange={(event) => setToken(event.target.value)}
         placeholder="Paste a JWT…"
         spellCheck={false}
-        className="h-16 w-full resize-none rounded-md border border-slate-300 bg-transparent p-2 font-mono text-xs focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="h-16 w-full resize-none p-2 font-mono text-xs"
       />
-      {error && (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
-      )}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
       {decoded && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto text-xs">
           {/* Keyed on the token so a freshly-decoded JWT gets a freshly
            * captured "now" — see ExpiryBadge for why this avoids an effect. */}
           <ExpiryBadge key={token} payload={decoded.payload} />
           <div>
-            <p className="mb-1 font-medium text-slate-500 dark:text-slate-400">
-              Header
-            </p>
+            <p className="mb-1 font-medium text-muted-foreground">Header</p>
             {typeof decoded.header === 'object' && decoded.header !== null ? (
               <JsonView data={decoded.header} style={style} />
             ) : (
@@ -84,12 +82,12 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
             )}
           </div>
           <div>
-            <p className="mb-1 font-medium text-slate-500 dark:text-slate-400">
-              Payload
-            </p>
+            <p className="mb-1 font-medium text-muted-foreground">Payload</p>
             <JsonView data={decoded.payload} style={style} />
           </div>
-          <p className="text-[11px] text-slate-400">Signature not verified.</p>
+          <p className="text-[11px] text-muted-foreground">
+            Signature not verified.
+          </p>
         </div>
       )}
     </div>
@@ -115,8 +113,8 @@ function ExpiryBadge({ payload }: { payload: Record<string, unknown> }) {
       className={cn(
         'w-fit rounded-full px-2 py-0.5 font-medium',
         expired
-          ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
-          : 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300',
+          ? 'bg-destructive/10 text-destructive dark:bg-destructive/20'
+          : 'bg-success/15 text-success dark:bg-success/20',
       )}
     >
       {expired ? 'Expired' : 'Valid until'} {date.toLocaleString()}

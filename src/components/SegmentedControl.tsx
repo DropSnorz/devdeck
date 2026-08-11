@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        'inline-flex gap-0.5 rounded-md bg-slate-100 p-0.5 text-xs dark:bg-slate-800',
+        'inline-flex gap-0.5 rounded-md bg-muted p-0.5 text-xs',
         className,
       )}
     >
@@ -43,8 +43,8 @@ export function SegmentedControl<T extends string>({
           className={cn(
             'rounded px-2 py-1 font-medium transition-colors',
             option.value === value
-              ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-slate-100'
-              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
           )}
         >
           {option.label}

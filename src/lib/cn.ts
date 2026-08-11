@@ -1,6 +1,4 @@
-/** Joins class names, dropping falsy values. A minimal stand-in for `clsx`. */
-export function cn(
-  ...classes: Array<string | false | null | undefined>
-): string {
-  return classes.filter(Boolean).join(' ')
-}
+/** @deprecated import from `@/lib/utils` instead — this re-export exists only
+ * so existing call sites keep compiling; new code should use `@/lib/utils`
+ * directly, matching shadcn's own convention. */
+export { cn } from './utils'

@@ -1,5 +1,8 @@
+import { useId } from 'react'
 import { colord, type Colord } from 'colord'
 import { CopyButton } from '@/components/CopyButton'
+import { Field } from '@/components/Field'
+import { Input } from '@/components/ui/input'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -55,15 +58,15 @@ export default function ColorConverterWidget({ instanceId }: WidgetProps) {
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
       <div className="flex items-center gap-2">
-        <input
+        <Input
           type="color"
           value={color.toHex()}
           onChange={(event) => handleNativePicker(event.target.value)}
-          className="h-9 w-9 shrink-0 cursor-pointer rounded border border-slate-300 bg-transparent dark:border-slate-700"
+          className="h-9 w-9 shrink-0 cursor-pointer p-0"
           aria-label="Pick a color"
         />
         <div
-          className="h-9 flex-1 rounded border border-slate-300 dark:border-slate-700"
+          className="h-9 flex-1 rounded border border-input"
           style={{ backgroundColor: color.toRgbString() }}
         />
       </div>
@@ -84,18 +87,17 @@ function ColorField({
   value: string
   onChange: (value: string) => void
 }) {
+  const id = useId()
   return (
-    <label className="flex items-center gap-1">
-      <span className="w-8 shrink-0 text-slate-500 dark:text-slate-400">
-        {label}
-      </span>
-      <input
+    <Field label={label} htmlFor={id} layout="row">
+      <Input
+        id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         spellCheck={false}
-        className="min-w-0 flex-1 rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="min-w-0 flex-1 font-mono"
       />
       <CopyButton value={value} label="" />
-    </label>
+    </Field>
   )
 }

@@ -1,6 +1,7 @@
 import { LayoutGrid, RotateCcw } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAnyWidgetDirty, useResetWidgets } from '@/widgets/useWidgetDirty'
+import { Button } from '@/components/ui/button'
 import { DashboardTabBar } from './DashboardTabBar'
 import { DashboardToolbar } from './DashboardToolbar'
 import { useDashboardStore } from './useDashboardStore'
@@ -27,25 +28,26 @@ export function AppHeader() {
   const resetWidgets = useResetWidgets()
 
   return (
-    <header className="flex h-full min-w-0 flex-1 items-center gap-3 border-b border-slate-200 bg-white px-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <header className="flex h-full min-w-0 flex-1 items-center gap-3 border-b border-border bg-card px-4 shadow-sm">
       {/* The brand box next to the sidebar carries the logo (and toggle) on
           desktop — it's hidden below md, so show a compact stand-in here
           instead of losing it entirely on mobile. */}
-      <LayoutGrid className="size-5 shrink-0 text-slate-900 md:hidden dark:text-slate-100" />
+      <LayoutGrid className="size-5 shrink-0 text-foreground md:hidden" />
 
       <DashboardTabBar />
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => resetWidgets(activeInstanceIds)}
           disabled={!anyDirty}
           title="Reset every widget on this dashboard back to default"
-          className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <RotateCcw className="size-3.5" />
           <span className="hidden sm:inline">Clear state</span>
-        </button>
+        </Button>
         <DashboardToolbar />
       </div>
     </header>

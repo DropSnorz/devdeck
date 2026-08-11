@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react'
 import { Maximize2, Minimize2, X, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { Button } from '@/components/ui/button'
 import { useIsWidgetDirty } from '@/widgets/useWidgetDirty'
 import { WidgetErrorBoundary } from './WidgetErrorBoundary'
 
@@ -44,20 +45,18 @@ export function WidgetShell({
   return (
     <div
       className={cn(
-        'flex h-full flex-col overflow-hidden rounded-lg border bg-white shadow-sm dark:bg-slate-900',
-        isDirty
-          ? 'animate-dirty-pulse'
-          : 'border-slate-200 dark:border-slate-800',
+        'flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-sm',
+        isDirty ? 'animate-dirty-pulse' : 'border-border',
       )}
     >
       <div
         className={cn(
-          'flex shrink-0 items-center justify-between border-b border-slate-200 px-2 py-1.5 dark:border-slate-800',
+          'flex shrink-0 items-center justify-between border-b border-border px-2 py-1.5',
           dragHandleClassName,
         )}
       >
-        <span className="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
-          {Icon && <Icon className="size-3.5 shrink-0 text-slate-400" />}
+        <span className="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-foreground">
+          {Icon && <Icon className="size-3.5 shrink-0 text-muted-foreground" />}
           <span className="truncate">{title}</span>
           {isDirty && (
             <span
@@ -69,28 +68,32 @@ export function WidgetShell({
         <div className="flex shrink-0 items-center gap-0.5">
           {extraActions}
           {onToggleExpand && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={onToggleExpand}
               aria-label={isExpanded ? `Collapse ${title}` : `Expand ${title}`}
-              className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              className="text-muted-foreground"
             >
               {isExpanded ? (
                 <Minimize2 className="size-3.5" />
               ) : (
                 <Maximize2 className="size-3.5" />
               )}
-            </button>
+            </Button>
           )}
           {onRemove && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={onRemove}
               aria-label={`Remove ${title}`}
-              className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-red-600 dark:hover:bg-slate-800 dark:hover:text-red-400"
+              className="text-muted-foreground hover:text-destructive"
             >
               <X className="size-3.5" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -105,7 +108,7 @@ export function WidgetShell({
 
 function WidgetLoadingFallback() {
   return (
-    <div className="flex h-full items-center justify-center text-xs text-slate-400">
+    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
       Loading…
     </div>
   )

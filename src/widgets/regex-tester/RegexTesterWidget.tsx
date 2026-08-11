@@ -1,5 +1,9 @@
 import { useMemo } from 'react'
-import { cn } from '@/lib/cn'
+import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { ErrorMessage } from '@/components/ErrorMessage'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -64,47 +68,50 @@ export default function RegexTesterWidget({ instanceId }: WidgetProps) {
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
       <div className="flex items-center gap-1">
-        <span className="text-slate-400">/</span>
-        <input
+        <span className="text-muted-foreground">/</span>
+        <Input
           value={pattern}
           onChange={(event) => setPattern(event.target.value)}
           placeholder="pattern"
           spellCheck={false}
-          className="min-w-0 flex-1 rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+          className="min-w-0 flex-1 font-mono"
         />
-        <span className="text-slate-400">/</span>
-        {FLAG_OPTIONS.map((flag) => (
-          <button
-            key={flag}
-            type="button"
-            onClick={() => toggleFlag(flag)}
-            aria-pressed={flags.includes(flag)}
-            className={cn(
-              'rounded px-1.5 py-1 font-mono',
-              flags.includes(flag)
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-            )}
-          >
-            {flag}
-          </button>
-        ))}
+        <span className="text-muted-foreground">/</span>
+        {FLAG_OPTIONS.map((flag) => {
+          const active = flags.includes(flag)
+          return (
+            <Button
+              key={flag}
+              type="button"
+              onClick={() => toggleFlag(flag)}
+              aria-pressed={active}
+              className={cn(
+                'h-auto rounded px-1.5 py-1 font-mono',
+                active
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-secondary text-muted-foreground hover:bg-secondary/80',
+              )}
+            >
+              {flag}
+            </Button>
+          )
+        })}
       </div>
-      {error && <p className="text-red-600 dark:text-red-400">{error}</p>}
-      <textarea
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      <Textarea
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder="Test string…"
         spellCheck={false}
-        className="h-16 w-full resize-none rounded-md border border-slate-300 bg-transparent p-2 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="h-16 w-full resize-none p-2 font-mono"
       />
-      <div className="min-h-0 flex-1 overflow-auto rounded-md border border-slate-200 bg-slate-50 p-2 font-mono dark:border-slate-800 dark:bg-slate-800/40">
+      <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background p-2 font-mono dark:bg-muted/40">
         {!error &&
           segments.map((segment, index) =>
             segment.isMatch ? (
               <mark
                 key={index}
-                className="rounded bg-amber-200 px-0.5 dark:bg-amber-500/40"
+                className="rounded bg-highlight px-0.5 dark:bg-highlight/40"
               >
                 {segment.text}
               </mark>
@@ -114,7 +121,7 @@ export default function RegexTesterWidget({ instanceId }: WidgetProps) {
           )}
       </div>
       {matches.length > 0 && (
-        <p className="text-slate-500 dark:text-slate-400">
+        <p className="text-muted-foreground">
           {matches.length} match{matches.length === 1 ? '' : 'es'}
         </p>
       )}

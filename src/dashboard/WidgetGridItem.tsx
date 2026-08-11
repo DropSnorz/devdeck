@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Move } from 'lucide-react'
 import { WidgetShell } from '@/widget-shell/WidgetShell'
 import { GridPositionDialog } from '@/widget-shell/GridPositionDialog'
+import { Button } from '@/components/ui/button'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
 import { useWidgetResetNonce } from '@/widgets/useWidgetDirty'
@@ -60,20 +61,22 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
         onRemove={isExpanded ? undefined : onRemove}
         extraActions={
           showMoveControl && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => setPositionDialogOpen(true)}
               aria-label={`Move or resize ${widget.name}`}
               title="Move or resize with the keyboard"
-              className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              className="text-muted-foreground"
             >
               <Move className="size-3.5" />
-            </button>
+            </Button>
           )
         }
       >
         {isExpanded ? (
-          <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-slate-400 dark:border-slate-700">
+          <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-input text-xs text-muted-foreground">
             Expanded
           </div>
         ) : (

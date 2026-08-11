@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Check, Copy } from 'lucide-react'
-import { cn } from '@/lib/cn'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface CopyButtonProps {
   value: string
@@ -43,14 +44,15 @@ export function CopyButton({
     status === 'copied' ? 'Copied' : status === 'failed' ? 'Copy failed' : label
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={handleCopy}
       disabled={!value}
       aria-live="polite"
       className={cn(
-        'inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
-        status === 'failed' && 'text-red-600 dark:text-red-400',
+        'h-auto gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground',
+        status === 'failed' && 'text-destructive hover:text-destructive',
         className,
       )}
     >
@@ -62,6 +64,6 @@ export function CopyButton({
         <Copy className="size-3.5" />
       )}
       {statusLabel}
-    </button>
+    </Button>
   )
 }
