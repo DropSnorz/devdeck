@@ -284,3 +284,68 @@ export function getNextOccurrences(
 
   return results
 }
+
+/** Finds the single matching instant immediately *before* `before` — the
+ * mirror image of `getNextOccurrences`, stepping backward with the same
+ * month/day/hour jumps. Used to anchor the progress bar of an upcoming
+ * trigger against the real preceding one (whose distance can differ from
+ * the gaps between later triggers for an irregular expression), rather
+ * than assuming evenly spaced triggers. Returns `null` if nothing matches
+ * within the search horizon. */
+export function getPreviousOccurrence(
+  fields: CronFields,
+  before: Date,
+  maxYearsBack = 5,
+): Date | null {
+  const domRestricted = fields.raw.dayOfMonth !== '*'
+  const dowRestricted = fields.raw.dayOfWeek !== '*'
+
+  const candidate = new Date(
+    before.getFullYear(),
+    before.getMonth(),
+    before.getDate(),
+    before.getHours(),
+    before.getMinutes(),
+    0,
+    0,
+  )
+  candidate.setMinutes(candidate.getMinutes() - 1)
+
+  const limit = new Date(candidate)
+  limit.setFullYear(limit.getFullYear() - maxYearsBack)
+
+  while (candidate >= limit) {
+    if (!fields.month.has(candidate.getMonth() + 1)) {
+      // Day 0 of the current month is the last day of the previous one.
+      candidate.setMonth(candidate.getMonth(), 0)
+      candidate.setHours(23, 59, 0, 0)
+      continue
+    }
+
+    const dayMatches =
+      domRestricted && dowRestricted
+        ? fields.dayOfMonth.has(candidate.getDate()) ||
+          fields.dayOfWeek.has(candidate.getDay())
+        : (!domRestricted || fields.dayOfMonth.has(candidate.getDate())) &&
+          (!dowRestricted || fields.dayOfWeek.has(candidate.getDay()))
+    if (!dayMatches) {
+      candidate.setDate(candidate.getDate() - 1)
+      candidate.setHours(23, 59, 0, 0)
+      continue
+    }
+
+    if (!fields.hour.has(candidate.getHours())) {
+      candidate.setHours(candidate.getHours() - 1, 59, 0, 0)
+      continue
+    }
+
+    if (!fields.minute.has(candidate.getMinutes())) {
+      candidate.setMinutes(candidate.getMinutes() - 1)
+      continue
+    }
+
+    return new Date(candidate)
+  }
+
+  return null
+}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { CronParseError, getNextOccurrences, parseCron } from './cronParser'
+import {
+  CronParseError,
+  getNextOccurrences,
+  getPreviousOccurrence,
+  parseCron,
+} from './cronParser'
 
 describe('parseCron', () => {
   it('parses a bare wildcard field as its full range', () => {
@@ -183,5 +188,36 @@ describe('getNextOccurrences', () => {
   it('defaults to 3 occurrences from now', () => {
     const fields = parseCron('* * * * *')
     expect(getNextOccurrences(fields)).toHaveLength(3)
+  })
+})
+
+describe('getPreviousOccurrence', () => {
+  it('finds the matching instant immediately before the given time', () => {
+    const fields = parseCron('*/15 * * * *')
+    const before = new Date(2024, 0, 1, 10, 0, 0)
+    expect(getPreviousOccurrence(fields, before)).toEqual(
+      new Date(2024, 0, 1, 9, 45, 0),
+    )
+  })
+
+  it('is the exact mirror of getNextOccurrences across a boundary', () => {
+    const fields = parseCron('0 9 * * 1-5') // weekdays at 09:00
+    const t = new Date(2024, 0, 8, 9, 0, 0) // a Monday, exactly on the mark
+    const [next] = getNextOccurrences(fields, { count: 1, from: t })
+    const prev = getPreviousOccurrence(fields, next)
+    expect(prev).toEqual(t)
+  })
+
+  it('rolls backward across a month/year boundary', () => {
+    const fields = parseCron('0 0 1 1 *') // Jan 1st
+    const before = new Date(2024, 0, 1, 0, 0, 0)
+    expect(getPreviousOccurrence(fields, before)).toEqual(
+      new Date(2023, 0, 1, 0, 0, 0),
+    )
+  })
+
+  it('returns null when nothing matches within the search horizon', () => {
+    const fields = parseCron('0 0 30 2 *') // February never has a 30th
+    expect(getPreviousOccurrence(fields, new Date(2024, 0, 1), 1)).toBeNull()
   })
 })

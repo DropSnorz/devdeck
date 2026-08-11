@@ -3,9 +3,15 @@ import { CopyButton } from '@/components/CopyButton'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
-import { CronParseError, getNextOccurrences, parseCron } from './cronParser'
+import {
+  CronParseError,
+  getNextOccurrences,
+  getPreviousOccurrence,
+  parseCron,
+} from './cronParser'
 import { describeCron } from './describeCron'
 import { formatRelativeTime } from './relativeTime'
+import { getTriggerProgress } from './triggerProgress'
 
 const DEFAULT_EXPRESSION = '*/5 * * * *'
 
@@ -66,6 +72,44 @@ export default function CronWidget({ instanceId }: WidgetProps) {
     [fields, now],
   )
 
+  // Anchors the progress bars' shared countdown window at the trigger
+  // immediately *before* the soonest upcoming one. Adjusted during render
+  // (React's documented pattern for "derived state that resets when an
+  // input changes" — see https://react.dev/learn/you-might-not-need-an-effect)
+  // rather than in an effect, so there's no extra post-commit render pass.
+  // It only reacts to the expression changing (a fresh window) or the
+  // soonest trigger firing and the list rotating (that trigger becomes the
+  // new anchor) — never to the once-a-second `now` tick — so this stays
+  // effectively free.
+  const [windowAnchor, setWindowAnchor] = useState<Date | null>(null)
+  const [trackedExpression, setTrackedExpression] = useState<string | null>(
+    null,
+  )
+  const [trackedFirstMs, setTrackedFirstMs] = useState<number | null>(null)
+  const firstOccurrenceMs = occurrences[0]?.getTime() ?? null
+
+  if (!fields || occurrences.length === 0) {
+    if (windowAnchor !== null) setWindowAnchor(null)
+    if (trackedExpression !== null) setTrackedExpression(null)
+    if (trackedFirstMs !== null) setTrackedFirstMs(null)
+  } else if (trackedExpression !== expression) {
+    setWindowAnchor(
+      getPreviousOccurrence(fields, occurrences[0]) ??
+        new Date(occurrences[0].getTime() - 60_000),
+    )
+    setTrackedExpression(expression)
+    setTrackedFirstMs(firstOccurrenceMs)
+  } else if (trackedFirstMs !== null && firstOccurrenceMs !== trackedFirstMs) {
+    setWindowAnchor(new Date(trackedFirstMs))
+    setTrackedFirstMs(firstOccurrenceMs)
+  }
+
+  const progress = useMemo(
+    () =>
+      windowAnchor ? getTriggerProgress(occurrences, windowAnchor, now) : [],
+    [occurrences, windowAnchor, now],
+  )
+
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
       <label className="flex flex-col gap-1">
@@ -115,18 +159,35 @@ export default function CronWidget({ instanceId }: WidgetProps) {
           occurrences.map((date, index) => (
             <div
               key={date.getTime()}
-              className={`flex items-center justify-between gap-2 px-2 py-1.5 ${
+              className={`px-2 py-1.5 ${
                 index > 0
                   ? 'border-t border-slate-200 dark:border-slate-800'
                   : ''
               }`}
             >
-              <span className="font-mono text-slate-600 dark:text-slate-300">
-                {formatAbsolute(date)}
-              </span>
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                {formatRelativeTime(date, now)}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-slate-600 dark:text-slate-300">
+                  {formatAbsolute(date)}
+                </span>
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                  {formatRelativeTime(date, now)}
+                </span>
+              </div>
+              {/* Countdown toward this trigger, relative to the shared
+                  3-trigger window — see triggerProgress.ts. Purely
+                  decorative (the relative-time chip above already states
+                  this), so hidden from assistive tech. Width updates once a
+                  second; the CSS transition interpolates the motion between
+                  ticks instead of a JS animation loop. */}
+              <div
+                aria-hidden="true"
+                className="mt-1 h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+              >
+                <div
+                  className="h-full rounded-full bg-slate-900 transition-[width] duration-1000 ease-linear motion-reduce:transition-none dark:bg-slate-100"
+                  style={{ width: `${(progress[index] ?? 0) * 100}%` }}
+                />
+              </div>
             </div>
           ))}
       </div>
