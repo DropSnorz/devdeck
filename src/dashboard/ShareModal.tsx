@@ -1,7 +1,15 @@
 import { useMemo, useRef, useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { AlertTriangle, Check, Copy, Download } from 'lucide-react'
-import { Modal } from '@/components/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useDashboardStore } from './useDashboardStore'
 import { buildShareUrl } from './shareUrl'
 
@@ -51,62 +59,82 @@ export function ShareModal({ open, onClose }: ShareModalProps) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Share your workspace">
-      <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-        This link contains all {dashboards.length} dashboard
-        {dashboards.length === 1 ? '' : 's'} ({totalWidgets} widget
-        {totalWidgets === 1 ? '' : 's'} total). Anyone who opens it gets the same layout on
-        their own device — not your widgets' content.
-      </p>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Share your workspace</DialogTitle>
+          <DialogDescription>
+            This link contains all {dashboards.length} dashboard
+            {dashboards.length === 1 ? '' : 's'} ({totalWidgets} widget
+            {totalWidgets === 1 ? '' : 's'} total). Anyone who opens it gets the
+            same layout on their own device — not your widgets' content.
+          </DialogDescription>
+        </DialogHeader>
 
-      <div className="mb-4 flex items-center gap-2">
-        <input
-          readOnly
-          value={shareUrl}
-          onFocus={(event) => event.target.select()}
-          className="min-w-0 flex-1 truncate rounded-md border border-slate-300 bg-transparent px-2 py-1.5 font-mono text-xs dark:border-slate-700"
-        />
-        <button
-          type="button"
-          onClick={handleCopy}
-          aria-live="polite"
-          className="inline-flex shrink-0 items-center gap-1 rounded-md bg-slate-900 px-2 py-1.5 text-xs font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
-        >
-          {copyStatus === 'copied' ? (
-            <Check className="size-3.5" />
-          ) : copyStatus === 'failed' ? (
-            <AlertTriangle className="size-3.5" />
-          ) : (
-            <Copy className="size-3.5" />
-          )}
-          {copyStatus === 'copied'
-            ? 'Copied'
-            : copyStatus === 'failed'
-              ? 'Copy failed'
-              : 'Copy'}
-        </button>
-      </div>
-
-      {qrEligible ? (
-        <div className="flex flex-col items-center gap-2">
-          <div ref={qrContainerRef} className="rounded-lg bg-white p-3">
-            <QRCodeCanvas value={shareUrl} size={200} marginSize={2} />
-          </div>
-          <button
+        <div className="flex items-center gap-2">
+          <Input
+            readOnly
+            value={shareUrl}
+            onFocus={(event) => event.target.select()}
+            className="min-w-0 flex-1 truncate font-mono text-xs"
+          />
+          <Button
             type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            size="sm"
+            onClick={handleCopy}
+            aria-live="polite"
+            className="shrink-0"
           >
-            <Download className="size-3.5" />
-            Download QR
-          </button>
+            {copyStatus === 'copied' ? (
+              <Check className="size-3.5" />
+            ) : copyStatus === 'failed' ? (
+              <AlertTriangle className="size-3.5" />
+            ) : (
+              <Copy className="size-3.5" />
+            )}
+            {copyStatus === 'copied'
+              ? 'Copied'
+              : copyStatus === 'failed'
+                ? 'Copy failed'
+                : 'Copy'}
+          </Button>
         </div>
-      ) : (
-        <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
-          This dashboard has too many widgets to fit in a reliably scannable QR
-          code — use the copy-link button above instead.
-        </p>
-      )}
-    </Modal>
+
+        {qrEligible ? (
+          <div className="flex flex-col items-center gap-2">
+            {/* Always a plain white surface, regardless of theme — a dark
+             * QR container would hurt scan contrast, so this is a
+             * deliberate exception to token adoption, not an oversight. */}
+            <div ref={qrContainerRef} className="rounded-lg bg-white p-3">
+              <QRCodeCanvas value={shareUrl} size={200} marginSize={2} />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDownload}
+              className="text-muted-foreground"
+            >
+              <Download className="size-3.5" />
+              Download QR
+            </Button>
+          </div>
+        ) : (
+          // Amber warning tone has no dedicated semantic token (only one
+          // call site app-wide) — kept literal rather than overloading
+          // `highlight` (defined for RegexTesterWidget's <mark> background,
+          // not text-on-tint) or inventing a token for a single usage.
+          <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+            This dashboard has too many widgets to fit in a reliably scannable
+            QR code — use the copy-link button above instead.
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

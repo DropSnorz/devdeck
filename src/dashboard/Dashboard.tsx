@@ -51,7 +51,7 @@ export function Dashboard() {
       <div className="sticky top-0 z-30 flex h-14 shrink-0">
         <div
           className={cn(
-            'hidden shrink-0 items-center gap-1 border-b border-r border-slate-200 bg-white px-2 md:flex dark:border-slate-800 dark:bg-slate-900',
+            'hidden shrink-0 items-center gap-1 border-b border-r border-border bg-card px-2 md:flex',
             sidebarCollapsed ? 'md:w-14 md:justify-center' : 'md:w-60',
           )}
         >
@@ -59,7 +59,7 @@ export function Dashboard() {
             type="button"
             onClick={toggleSidebar}
             aria-label={sidebarCollapsed ? 'Expand tool sidebar' : 'Collapse tool sidebar'}
-            className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             {sidebarCollapsed ? (
               <PanelLeftOpen className="size-4" />
@@ -69,8 +69,10 @@ export function Dashboard() {
           </button>
           {!sidebarCollapsed && (
             <div className="flex items-center gap-1.5 px-1">
-              <LayoutGrid className="size-5 shrink-0 text-slate-900 dark:text-slate-100" />
-              <span className="text-base font-semibold tracking-tight">DevDeck</span>
+              <LayoutGrid className="size-5 shrink-0 text-foreground" />
+              <span className="text-base font-semibold tracking-tight">
+                DevDeck
+              </span>
             </div>
           )}
         </div>
@@ -92,7 +94,7 @@ export function Dashboard() {
             <p
               role="status"
               aria-live="polite"
-              className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-red-600 px-3 py-1.5 text-xs text-white shadow-lg"
+              className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-destructive px-3 py-1.5 text-xs text-destructive-foreground shadow-lg"
             >
               {decodeError}
             </p>

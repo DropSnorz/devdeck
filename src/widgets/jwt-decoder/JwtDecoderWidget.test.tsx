@@ -52,8 +52,8 @@ describe('JwtDecoderWidget', () => {
 
     expect(screen.queryByText(/signature not verified/i)).not.toBeInTheDocument()
     // Exact wording comes from atob/JSON.parse and isn't worth pinning down
-    // — just confirm the error-styled paragraph rendered.
-    expect(container.querySelector('p.text-red-600')).not.toBeNull()
+    // — just confirm the error-styled paragraph (ErrorMessage) rendered.
+    expect(container.querySelector('p.text-destructive')).not.toBeNull()
   })
 
   it('shows "Valid until" for a token with a future exp claim', async () => {

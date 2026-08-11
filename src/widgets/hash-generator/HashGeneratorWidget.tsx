@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import SparkMD5 from 'spark-md5'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -63,19 +65,21 @@ export default function HashGeneratorWidget({ instanceId }: WidgetProps) {
         options={ALGORITHMS.map((value) => ({ label: value, value }))}
         className="flex-wrap"
       />
-      <textarea
+      <Textarea
         value={input}
         onChange={(event) => setInput(event.target.value)}
         placeholder="Text to hash…"
         spellCheck={false}
-        className="h-16 w-full flex-1 resize-none rounded-md border border-slate-300 bg-transparent p-2 font-mono text-xs focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="h-16 w-full flex-1 resize-none p-2 font-mono text-xs"
       />
       <div className="relative">
-        <input
+        {/* Distinct, lighter readonly-output palette — deliberately not the
+         * default Input look (see plan §6.2). */}
+        <Input
           readOnly
           value={displayedHash}
           placeholder="Hash output"
-          className="w-full rounded-md border border-slate-200 bg-slate-50 p-2 pr-14 font-mono text-xs dark:border-slate-800 dark:bg-slate-800/40"
+          className="border-border bg-background p-2 pr-14 font-mono text-xs dark:bg-muted/40"
         />
         <CopyButton value={displayedHash} className="absolute right-1 top-1" />
       </div>

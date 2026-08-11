@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Search, Share2 } from 'lucide-react'
 import { useCommandPaletteStore } from '@/command-palette/useCommandPaletteStore'
 import { ThemeToggle } from '@/theme/ThemeToggle'
+import { Button } from '@/components/ui/button'
 import { ShareModal } from './ShareModal'
 
 /** "Search tools" is the single entry point for finding *and* adding a
@@ -14,25 +15,28 @@ export function DashboardToolbar() {
 
   return (
     <div className="flex items-center gap-2">
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => setPaletteOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+        className="text-muted-foreground"
       >
         <Search className="size-3.5" />
         <span className="hidden sm:inline">Search tools</span>
-        <kbd className="ml-1 hidden rounded border border-slate-300 px-1 text-[10px] sm:inline dark:border-slate-600">
+        <kbd className="ml-1 hidden rounded border border-input px-1 text-[10px] sm:inline">
           ⌘K
         </kbd>
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => setShareOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
       >
         <Share2 className="size-3.5" />
         Share
-      </button>
+      </Button>
       <ThemeToggle />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>

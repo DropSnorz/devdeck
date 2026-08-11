@@ -1,3 +1,7 @@
+import { useId } from 'react'
+import { Field } from '@/components/Field'
+import { Input } from '@/components/ui/input'
+
 interface NumberFieldProps {
   label: string
   value: number
@@ -15,10 +19,12 @@ export function NumberField({
   max,
   onChange,
 }: NumberFieldProps) {
+  const id = useId()
+
   return (
-    <label className="flex flex-col gap-1 text-xs">
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
-      <input
+    <Field label={label} htmlFor={id} className="text-xs">
+      <Input
+        id={id}
         type="number"
         value={value}
         min={min}
@@ -32,8 +38,8 @@ export function NumberField({
           )
           onChange(clamped)
         }}
-        className="rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="h-auto font-mono"
       />
-    </label>
+    </Field>
   )
 }

@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -56,27 +58,27 @@ export default function Base64Widget({ instanceId }: WidgetProps) {
           { label: 'Decode', value: 'decode' },
         ]}
       />
-      <textarea
+      <Textarea
         value={input}
         onChange={(event) => setInput(event.target.value)}
         placeholder={
           direction === 'encode' ? 'Text to encode…' : 'Base64 to decode…'
         }
         spellCheck={false}
-        className="h-20 w-full flex-1 resize-none rounded-md border border-slate-300 bg-transparent p-2 font-mono text-xs focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="h-20 w-full flex-1 resize-none p-2 font-mono text-xs"
       />
       <div className="relative flex-1">
-        <textarea
+        <Textarea
           readOnly
           value={error ?? output}
           placeholder="Output"
           spellCheck={false}
-          className={
-            'h-20 w-full resize-none rounded-md border p-2 pr-14 font-mono text-xs ' +
-            (error
-              ? 'border-red-300 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400'
-              : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/40')
-          }
+          className={cn(
+            'h-20 w-full resize-none p-2 pr-14 font-mono text-xs',
+            error
+              ? 'border-destructive bg-destructive/10 text-destructive'
+              : 'border-border bg-background dark:bg-muted/40',
+          )}
         />
         {!error && (
           <CopyButton

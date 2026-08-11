@@ -34,6 +34,8 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
       {children}
       <div
         className={cn(
+          // Deliberate literal scrim, not `bg-background/50` — see the
+          // matching comment in CommandPalette's identical backdrop.
           'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm',
           target ? '' : 'hidden',
         )}

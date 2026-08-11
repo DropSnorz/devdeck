@@ -22,7 +22,7 @@ export function WidgetSidebar() {
   return (
     <aside
       className={cn(
-        'hidden shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white p-2 md:flex dark:border-slate-800 dark:bg-slate-900',
+        'hidden shrink-0 flex-col overflow-y-auto border-r border-border bg-card p-2 md:flex',
         collapsed ? 'w-14' : 'w-60',
       )}
     >
@@ -30,7 +30,7 @@ export function WidgetSidebar() {
         {groups.map((group) => (
           <div key={group.category}>
             {!collapsed && (
-              <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+              <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 {group.label}
               </p>
             )}
@@ -86,7 +86,7 @@ function SidebarWidgetItem({
         title={collapsed ? widget.name : undefined}
         aria-label={`Open ${widget.name} fullscreen — drag onto the dashboard to pin it there instead`}
         className={cn(
-          'flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-100 active:cursor-grabbing dark:text-slate-300 dark:hover:bg-slate-800',
+          'flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground hover:bg-accent active:cursor-grabbing',
           collapsed && 'justify-center',
         )}
       >

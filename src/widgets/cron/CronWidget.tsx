@@ -1,5 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { CopyButton } from '@/components/CopyButton'
+import { Field } from '@/components/Field'
+import { ErrorMessage } from '@/components/ErrorMessage'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -43,6 +47,7 @@ export default function CronWidget({ instanceId }: WidgetProps) {
     DEFAULT_EXPRESSION,
   )
   useWidgetDirty(instanceId, expression !== DEFAULT_EXPRESSION)
+  const expressionFieldId = useId()
 
   // Ticks once a second purely to keep the "in 2d" / "in 5s" labels (and the
   // occurrence list itself, once the soonest trigger passes) live.
@@ -112,46 +117,43 @@ export default function CronWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <label className="flex flex-col gap-1">
-        <span className="text-slate-500 dark:text-slate-400">
-          Cron expression
-        </span>
+      <Field label="Cron expression" htmlFor={expressionFieldId}>
         <div className="flex items-center gap-1">
-          <input
+          <Input
+            id={expressionFieldId}
             value={expression}
             onChange={(event) => setExpression(event.target.value)}
             placeholder="* * * * *"
             spellCheck={false}
-            className="w-full rounded-md border border-slate-300 bg-transparent px-2 py-1 font-mono focus:border-slate-500 focus:outline-none dark:border-slate-700"
+            className="w-full font-mono"
           />
           <CopyButton value={expression} label="" />
         </div>
-      </label>
+      </Field>
 
       <div className="flex flex-wrap gap-1">
         {PRESETS.map((preset) => (
-          <button
+          <Button
             key={preset.label}
             type="button"
+            variant="secondary"
             onClick={() => setExpression(preset.expression)}
-            className="rounded bg-slate-100 px-1.5 py-1 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+            className="h-auto rounded px-1.5 py-1 text-muted-foreground"
           >
             {preset.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       {error ? (
-        <p className="text-red-600 dark:text-red-400">{error}</p>
+        <ErrorMessage>{error}</ErrorMessage>
       ) : (
-        <p className="font-medium text-slate-700 dark:text-slate-200">
-          {description}
-        </p>
+        <p className="font-medium text-foreground">{description}</p>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-md border border-slate-200 dark:border-slate-800">
+      <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
         {!error && occurrences.length === 0 && (
-          <p className="p-2 text-slate-400">
+          <p className="p-2 text-muted-foreground">
             No upcoming trigger found in the next 5 years.
           </p>
         )}
@@ -160,16 +162,14 @@ export default function CronWidget({ instanceId }: WidgetProps) {
             <div
               key={date.getTime()}
               className={`px-2 py-1.5 ${
-                index > 0
-                  ? 'border-t border-slate-200 dark:border-slate-800'
-                  : ''
+                index > 0 ? 'border-t border-border' : ''
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-slate-600 dark:text-slate-300">
+                <span className="font-mono text-foreground">
                   {formatAbsolute(date)}
                 </span>
-                <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-muted-foreground">
                   {formatRelativeTime(date, now)}
                 </span>
               </div>
@@ -181,10 +181,10 @@ export default function CronWidget({ instanceId }: WidgetProps) {
                   ticks instead of a JS animation loop. */}
               <div
                 aria-hidden="true"
-                className="mt-1 h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+                className="mt-1 h-1 overflow-hidden rounded-full bg-border"
               >
                 <div
-                  className="h-full rounded-full bg-slate-900 transition-[width] duration-1000 ease-linear motion-reduce:transition-none dark:bg-slate-100"
+                  className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear motion-reduce:transition-none"
                   style={{ width: `${(progress[index] ?? 0) * 100}%` }}
                 />
               </div>

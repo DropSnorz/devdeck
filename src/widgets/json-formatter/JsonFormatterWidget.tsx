@@ -3,6 +3,8 @@ import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { ErrorMessage } from '@/components/ErrorMessage'
+import { Textarea } from '@/components/ui/textarea'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
@@ -55,18 +57,20 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
         />
         {hasData && <CopyButton value={formattedOutput} />}
       </div>
-      <textarea
+      <Textarea
         value={input}
         onChange={(event) => setInput(event.target.value)}
         placeholder="Paste JSON…"
         spellCheck={false}
-        className="h-24 w-full resize-none rounded-md border border-slate-300 bg-transparent p-2 font-mono text-xs focus:border-slate-500 focus:outline-none dark:border-slate-700"
+        className="h-24 w-full resize-none p-2 font-mono text-xs"
       />
-      <div className="min-h-0 flex-1 overflow-auto rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-800/40">
+      <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background p-2 dark:bg-muted/40">
         {error ? (
-          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+          <ErrorMessage>{error}</ErrorMessage>
         ) : !hasData ? (
-          <p className="text-xs text-slate-400">Output will appear here</p>
+          <p className="text-xs text-muted-foreground">
+            Output will appear here
+          </p>
         ) : viewMode === 'tree' && isTreeRenderable ? (
           <JsonView
             data={data as object}

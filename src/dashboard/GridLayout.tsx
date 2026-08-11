@@ -55,8 +55,8 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
   // there's no drag-to-add from the sidebar either (it's hidden on mobile).
   if (!isEditable) {
     return widgets.length === 0 ? (
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
-        <p className="text-slate-500 dark:text-slate-400">
+      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-input">
+        <p className="text-muted-foreground">
           No widgets yet — add one to get started.
         </p>
       </div>
@@ -135,8 +135,8 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
         </ReactGridLayout>
       )}
       {widgets.length === 0 && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
-          <p className="text-slate-500 dark:text-slate-400">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border border-dashed border-input">
+          <p className="text-muted-foreground">
             No widgets yet — drag a tool in from the sidebar, or search tools above.
           </p>
         </div>
