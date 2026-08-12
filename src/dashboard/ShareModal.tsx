@@ -65,7 +65,7 @@ export function ShareModal({ open, onClose }: ShareModalProps) {
         if (!next) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Share your workspace</DialogTitle>
           <DialogDescription>

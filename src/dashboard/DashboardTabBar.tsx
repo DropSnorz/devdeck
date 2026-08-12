@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { MAX_DASHBOARDS, useDashboardStore } from './useDashboardStore'
 
@@ -55,9 +49,7 @@ export function DashboardTabBar() {
             key={dashboard.id}
             className={cn(
               'flex shrink-0 items-center rounded-md text-xs font-medium',
-              isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent',
+              isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent',
             )}
           >
             {renamingId === dashboard.id ? (
@@ -129,18 +121,11 @@ export function DashboardTabBar() {
               <DialogTitle>Remove this dashboard?</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This removes{' '}
-              <strong className="font-semibold text-foreground">
-                {pendingRemove.name}
-              </strong>{' '}
-              and every widget on it. This can&rsquo;t be undone.
+              This removes <strong className="font-semibold text-foreground">{pendingRemove.name}</strong> and every
+              widget on it. This can&rsquo;t be undone.
             </p>
             <DialogFooter>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPendingRemoveId(null)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setPendingRemoveId(null)}>
                 Cancel
               </Button>
               <Button
@@ -150,6 +135,12 @@ export function DashboardTabBar() {
                   removeDashboard(pendingRemove.id)
                   setPendingRemoveId(null)
                 }}
+                // Base UI's default `destructive` variant is a soft/tinted
+                // style (bg-destructive/10) — overridden to a solid fill
+                // here since this specific action (removing a whole
+                // dashboard, irreversibly) warrants the stronger signal the
+                // original design used.
+                className="bg-destructive text-white hover:bg-destructive/90"
               >
                 Remove
               </Button>
