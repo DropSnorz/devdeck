@@ -4,13 +4,14 @@ import 'react-json-view-lite/dist/index.css'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { ErrorMessage } from '@/components/ErrorMessage'
+import { CodeEditor } from '@/components/CodeEditor'
 import { Textarea } from '@/components/ui/textarea'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
-type ViewMode = 'tree' | 'pretty' | 'minified'
+type ViewMode = 'plain' | 'tree' | 'pretty' | 'minified'
 
 const SAMPLE = '{\n  "hello": "world"\n}'
 
@@ -45,43 +46,54 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <SegmentedControl
-          value={viewMode}
-          onChange={setViewMode}
-          options={[
-            { label: 'Tree', value: 'tree' },
-            { label: 'Pretty', value: 'pretty' },
-            { label: 'Minified', value: 'minified' },
-          ]}
-        />
-        {hasData && <CopyButton value={formattedOutput} />}
-      </div>
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder="Paste JSON…"
-        spellCheck={false}
-        className="h-24 w-full resize-none p-2 font-mono text-xs"
+      <SegmentedControl
+        value={viewMode}
+        onChange={setViewMode}
+        options={[
+          { label: 'Plain', value: 'plain' },
+          { label: 'Tree', value: 'tree' },
+          { label: 'Pretty', value: 'pretty' },
+          { label: 'Minified', value: 'minified' },
+        ]}
       />
-      <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background p-2 dark:bg-muted/40">
-        {error ? (
-          <ErrorMessage>{error}</ErrorMessage>
-        ) : !hasData ? (
-          <p className="text-xs text-muted-foreground">
-            Output will appear here
-          </p>
-        ) : viewMode === 'tree' && isTreeRenderable ? (
-          <JsonView
-            data={data as object}
-            style={isDark ? darkStyles : defaultStyles}
-          />
-        ) : (
-          <pre className="whitespace-pre-wrap break-all font-mono text-xs">
-            {formattedOutput}
-          </pre>
-        )}
-      </div>
+      <CodeEditor
+        value={input}
+        onChange={setInput}
+        language="json"
+        placeholder="Paste JSON…"
+        aria-label="JSON input"
+        className="min-h-0 flex-1"
+      />
+      {viewMode !== 'plain' && (
+        <div className="relative min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background p-2 dark:bg-muted/40">
+          {error ? (
+            <ErrorMessage>{error}</ErrorMessage>
+          ) : !hasData ? (
+            <p className="text-xs text-muted-foreground">
+              Output will appear here
+            </p>
+          ) : viewMode === 'tree' && isTreeRenderable ? (
+            <JsonView
+              data={data as object}
+              style={isDark ? darkStyles : defaultStyles}
+            />
+          ) : (
+            <Textarea
+              readOnly
+              value={formattedOutput}
+              spellCheck={false}
+              aria-label="JSON output"
+              className="h-full w-full resize-none border-0 bg-transparent p-0 pr-14 font-mono text-xs"
+            />
+          )}
+          {hasData && (
+            <CopyButton
+              value={formattedOutput}
+              className="absolute right-1 top-1 bg-inherit"
+            />
+          )}
+        </div>
+      )}
     </div>
   )
 }
