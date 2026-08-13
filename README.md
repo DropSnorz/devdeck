@@ -23,6 +23,27 @@ customizable, shareable screen.
 UUID Generator, Base64, URL Encoder, Timestamp Converter, JSON Formatter, Color Converter,
 Hash Generator (MD5/SHA-1/256/384/512), JWT Decoder, Regex Tester, Text Case Converter.
 
+
+## Alternatives
+
+There are already plenty of great developer utility tools out there, covering everything from Base64 and JSON to colors, timestamps, JWTs, and more. But as the table below shows, we found that none quite fit the way we wanted to work. **Context switching** between tools means losing focus, finding the next tool, and getting back into what you were doing. These small interruptions add up and make simple tasks feel more complicated than they need to be. We wanted a simpler experience: **keep several tools open at once, move naturally between them, and keep the context of your work in one place.**
+
+
+| Alternative                                                                                                    | Tool coverage | Local-first | Web app | Persistent workspace | Multiple tools simultaneously | License        |
+| -------------------------------------------------------------------------------------------------------------- | ------------: | ----------: | ------: | -------------------: | ----------------------------: | -------------- |
+| [DevToys](https://devtoys.app/)                                                                                |            🟢 |          🟢 |      🔴 |                   🔴 |                            🔴 | 🟢 MIT         |
+| [DevUtils](https://devutils.com/)                                                                              |            🟢 |          🟢 |      🔴 |                   🔴 |                            🔴 | 🔴 Proprietary |
+| [devutils.sh](https://devutils.sh/)                                                                            |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓              |
+| [NextDevTools](https://www.nextdevtools.com/)                                                                  |            🟢 |          🟢 |      🟢 |                   🔴 |                            🟡 | ❓              |
+| [SafeUtils](https://safeutils.com/)                                                                            |            🟢 |          🟢 |      🔴 |                   🔴 |                            🔴 | 🔴 Proprietary |
+| [Boop](https://github.com/IvanMathy/Boop)                                                                      |            🟢 |          🟢 |      🔴 |                   🟡 |                            🔴 | 🟢 MIT         |
+| [Devly](https://devly.techfixpro.net/                                                                    )     |            🟢 |          🟢 |      🔴 |                   🔴 |                            🟡 | 🔴 Proprietary |
+| [DevToolGrid](https://devtoolgrid.com/)                                                                        |            🟡 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓              |
+| [Detools-it](https://detools-it.com/)                                                                          | 🟡 | 🟢 | 🟢 | 🔴 | 🔴 | ❓ |
+| [devdeck.ir](https://devdeck.ir/)                                                                              | 🟢 | 🟢 | 🟢 | 🔴 | 🔴 | ❓ |
+| **This concept**                                                                                               |            🟢 |          🟢 |      🟢 |                   🟢 |                            🟢 | **TBD**        |
+
+
 ## Development
 
 ```sh
