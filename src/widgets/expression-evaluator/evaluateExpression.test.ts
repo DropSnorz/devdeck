@@ -15,6 +15,13 @@ describe('evaluateExpression', () => {
     expect(evaluateExpression('9 % 4').value).toBe(1)
   })
 
+  it('accepts the Unicode operators the widget advertises support for', () => {
+    expect(evaluateExpression('5 − 2').value).toBe(3) // U+2212 minus sign
+    expect(evaluateExpression('6 × 7').value).toBe(42) // U+00D7 multiplication sign
+    expect(evaluateExpression('9 ÷ 2').value).toBe(4.5) // U+00F7 division sign
+    expect(evaluateExpression('−3').value).toBe(-3) // unary minus sign too
+  })
+
   it('respects operator precedence', () => {
     expect(evaluateExpression('2 + 3 * 4').value).toBe(14)
     expect(evaluateExpression('(2 + 3) * 4').value).toBe(20)

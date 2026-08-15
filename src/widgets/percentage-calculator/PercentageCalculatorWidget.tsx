@@ -68,7 +68,11 @@ export default function PercentageCalculatorWidget({ instanceId }: WidgetProps) 
   const bothEntered = a !== null && b !== null
   const result = compute(mode, a, b)
   const resultText = result !== null ? formatNumber(result) : null
-  const displayText = resultText !== null ? (mode === 'of' ? resultText : `${resultText}%`) : null
+  // Only "X is what % of Y" and "% change" actually answer in percent —
+  // "X% of Y" and "X is Y% of ?" both answer in the same unit as the
+  // inputs, so tagging those with "%" would misrepresent the number.
+  const displaysPercent = mode === 'isWhatPercent' || mode === 'change'
+  const displayText = resultText !== null ? (displaysPercent ? `${resultText}%` : resultText) : null
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">

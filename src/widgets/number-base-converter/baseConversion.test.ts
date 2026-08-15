@@ -33,6 +33,12 @@ describe('parseInBase', () => {
     const huge = '123456789012345678901234567890'
     expect(parseInBase(huge, 10)).toBe(BigInt(huge))
   })
+
+  it('returns null for a non-integer or out-of-range base', () => {
+    expect(parseInBase('10', 1)).toBeNull()
+    expect(parseInBase('10', 37)).toBeNull()
+    expect(parseInBase('10', 2.5)).toBeNull()
+  })
 })
 
 describe('formatInBase', () => {
@@ -55,5 +61,11 @@ describe('formatInBase', () => {
       const value = 12345n
       expect(parseInBase(formatInBase(value, base), base)).toBe(value)
     }
+  })
+
+  it('throws for a non-integer or out-of-range base instead of looping forever or misformatting', () => {
+    expect(() => formatInBase(1n, 1)).toThrow(RangeError)
+    expect(() => formatInBase(36n, 37)).toThrow(RangeError)
+    expect(() => formatInBase(10n, 2.5)).toThrow(RangeError)
   })
 })

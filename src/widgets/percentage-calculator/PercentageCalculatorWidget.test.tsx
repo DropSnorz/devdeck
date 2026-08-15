@@ -33,6 +33,17 @@ describe('PercentageCalculatorWidget', () => {
     expect(screen.getByText('-25%')).toBeInTheDocument()
   })
 
+  it('does not tag the "X is Y% of ?" answer with a % sign — it answers in the same unit as the inputs', async () => {
+    const user = userEvent.setup()
+    render(<PercentageCalculatorWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /x is y% of \?/i }))
+
+    // defaults are Part=20, Percent=50 -> 20 is 50% of 40
+    expect(screen.getByText('40')).toBeInTheDocument()
+    expect(screen.queryByText('40%')).not.toBeInTheDocument()
+  })
+
   it('reports division by zero instead of Infinity/NaN', async () => {
     const user = userEvent.setup()
     render(<PercentageCalculatorWidget instanceId="test" mode="grid" />)

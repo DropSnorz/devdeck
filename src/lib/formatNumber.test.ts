@@ -18,9 +18,29 @@ describe('formatNumber', () => {
     expect(formatNumber(1 / 3, 2)).toBe('0.33')
   })
 
-  it('labels non-finite results instead of printing "Infinity"/"NaN" from a bare toString', () => {
+  it('explicitly handles Infinity, -Infinity, and NaN rather than relying on a bare toString', () => {
     expect(formatNumber(Infinity)).toBe('Infinity')
     expect(formatNumber(-Infinity)).toBe('-Infinity')
     expect(formatNumber(NaN)).toBe('NaN')
+  })
+
+  it('falls back to scientific notation instead of printing a nonzero value as "0"', () => {
+    expect(formatNumber(1 / 1073741824)).toBe('9.313226e-10') // 1 byte in GiB
+    expect(formatNumber(-1 / 1073741824)).toBe('-9.313226e-10')
+  })
+
+  it('still prints exact zero as "0", not scientific notation', () => {
+    expect(formatNumber(0)).toBe('0')
+  })
+
+  it('rejects a non-integer or out-of-range precision', () => {
+    expect(() => formatNumber(1.5, 1.5)).toThrow(RangeError)
+    expect(() => formatNumber(1.5, -1)).toThrow(RangeError)
+    expect(() => formatNumber(1.5, 101)).toThrow(RangeError)
+  })
+
+  it('accepts the boundary precisions 0 and 100', () => {
+    expect(formatNumber(1.6, 0)).toBe('2')
+    expect(formatNumber(1 / 3, 100)).toMatch(/^0\.3+$/)
   })
 })

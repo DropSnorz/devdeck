@@ -7,6 +7,16 @@ interface Token {
 
 const NUMBER_PATTERN = /^\d+(\.\d+)?$|^\.\d+$/
 
+// The widget's own help text advertises "− × ÷" alongside the ASCII
+// operators, so pasted expressions using the "proper" Unicode symbols must
+// tokenize too — normalize them to their ASCII equivalent here rather than
+// rejecting them.
+const OPERATOR_ALIASES: Record<string, string> = {
+  '−': '-', // U+2212 MINUS SIGN
+  '×': '*', // U+00D7 MULTIPLICATION SIGN
+  '÷': '/', // U+00F7 DIVISION SIGN
+}
+
 function tokenize(input: string): Token[] {
   const tokens: Token[] = []
   let i = 0
@@ -24,8 +34,8 @@ function tokenize(input: string): Token[] {
       tokens.push({ type: 'number', value: raw })
       continue
     }
-    if ('+-*/%^'.includes(ch)) {
-      tokens.push({ type: 'operator', value: ch })
+    if ('+-*/%^'.includes(ch) || ch in OPERATOR_ALIASES) {
+      tokens.push({ type: 'operator', value: OPERATOR_ALIASES[ch] ?? ch })
       i++
       continue
     }

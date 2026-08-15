@@ -40,4 +40,19 @@ describe('UnitConverterWidget', () => {
 
     expect(screen.getByText('212')).toBeInTheDocument()
   })
+
+  it('shows a tiny nonzero result in scientific notation instead of a misleading "0"', async () => {
+    const user = userEvent.setup()
+    render(<UnitConverterWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Data' }))
+    await user.selectOptions(screen.getByLabelText(/^from$/i), 'B')
+    await user.selectOptions(screen.getByLabelText(/^to$/i), 'GiB')
+    await user.clear(screen.getByLabelText(/value/i))
+    await user.type(screen.getByLabelText(/value/i), '1')
+
+    // 1 byte in GiB — would round to "0" at fixed precision
+    expect(screen.getByText('9.313226e-10')).toBeInTheDocument()
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
 })
