@@ -11,6 +11,11 @@ import { regexTesterDefinition } from './regex-tester/definition'
 import { textCaseConverterDefinition } from './text-case-converter/definition'
 import { cronDefinition } from './cron/definition'
 import { textDiffDefinition } from './text-diff/definition'
+import { numberBaseConverterDefinition } from './number-base-converter/definition'
+import { expressionEvaluatorDefinition } from './expression-evaluator/definition'
+import { percentageCalculatorDefinition } from './percentage-calculator/definition'
+import { unitConverterDefinition } from './unit-converter/definition'
+import { statisticsCalculatorDefinition } from './statistics-calculator/definition'
 
 /** Single source of truth for every widget DevDeck knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -27,6 +32,11 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   textCaseConverterDefinition,
   cronDefinition,
   textDiffDefinition,
+  numberBaseConverterDefinition,
+  expressionEvaluatorDefinition,
+  percentageCalculatorDefinition,
+  unitConverterDefinition,
+  statisticsCalculatorDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> =
