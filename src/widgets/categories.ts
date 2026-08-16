@@ -9,6 +9,7 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   security: 'Security',
   color: 'Color',
   text: 'Text',
+  network: 'Network',
 }
 
 /** Display order for category sections — not alphabetical, roughly
@@ -21,6 +22,7 @@ export const CATEGORY_ORDER: WidgetCategory[] = [
   'security',
   'color',
   'text',
+  'network',
 ]
 
 export interface WidgetCategoryGroup {
@@ -32,9 +34,7 @@ export interface WidgetCategoryGroup {
 /** Buckets widgets by category in display order, dropping empty categories.
  * Used by the sidebar; written to accept an arbitrary widget list so it
  * still works if that list is ever filtered (search, etc.) upstream. */
-export function groupWidgetsByCategory(
-  widgets: WidgetDefinition[] = WIDGET_LIST,
-): WidgetCategoryGroup[] {
+export function groupWidgetsByCategory(widgets: WidgetDefinition[] = WIDGET_LIST): WidgetCategoryGroup[] {
   return CATEGORY_ORDER.map((category) => ({
     category,
     label: CATEGORY_LABELS[category],

@@ -17,6 +17,7 @@ import { percentageCalculatorDefinition } from './percentage-calculator/definiti
 import { unitConverterDefinition } from './unit-converter/definition'
 import { statisticsCalculatorDefinition } from './statistics-calculator/definition'
 import { notesDefinition } from './notes/definition'
+import { subnetCalculatorDefinition } from './subnet-calculator/definition'
 
 /** Single source of truth for every widget DevDeck knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -39,15 +40,15 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   unitConverterDefinition,
   statisticsCalculatorDefinition,
   notesDefinition,
+  subnetCalculatorDefinition,
 ]
 
-export const WIDGET_REGISTRY: Record<string, WidgetDefinition> =
-  Object.fromEntries(ALL_WIDGETS.map((widget) => [widget.id, widget]))
+export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
+  ALL_WIDGETS.map((widget) => [widget.id, widget]),
+)
 
 export const WIDGET_LIST: WidgetDefinition[] = Object.values(WIDGET_REGISTRY)
 
-export function getWidgetDefinition(
-  widgetId: string,
-): WidgetDefinition | undefined {
+export function getWidgetDefinition(widgetId: string): WidgetDefinition | undefined {
   return WIDGET_REGISTRY[widgetId]
 }
