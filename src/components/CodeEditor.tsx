@@ -11,12 +11,14 @@ import { Button } from '@/components/ui/button'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/utils'
 
-export type CodeEditorLanguage = 'json'
-// Deliberately a union with one member today — new languages just add a
-// case to LANGUAGE_EXTENSIONS below and a member here, no prop reshape.
+export type CodeEditorLanguage = 'json' | 'plaintext'
 
 const LANGUAGE_EXTENSIONS: Record<CodeEditorLanguage, () => Extension[]> = {
   json: () => [json()],
+  // No language grammar to highlight — just wrap long lines instead of
+  // scrolling horizontally, which matters far more for prose than for the
+  // structured/single-line inputs the other widgets edit.
+  plaintext: () => [EditorView.lineWrapping],
 }
 
 export interface CodeEditorProps {

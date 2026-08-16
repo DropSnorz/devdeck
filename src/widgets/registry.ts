@@ -16,6 +16,7 @@ import { expressionEvaluatorDefinition } from './expression-evaluator/definition
 import { percentageCalculatorDefinition } from './percentage-calculator/definition'
 import { unitConverterDefinition } from './unit-converter/definition'
 import { statisticsCalculatorDefinition } from './statistics-calculator/definition'
+import { notesDefinition } from './notes/definition'
 
 /** Single source of truth for every widget DevDeck knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -37,6 +38,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   percentageCalculatorDefinition,
   unitConverterDefinition,
   statisticsCalculatorDefinition,
+  notesDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> =
