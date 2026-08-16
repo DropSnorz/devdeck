@@ -57,19 +57,49 @@ export function ipClassOf(ip: number): 'A' | 'B' | 'C' | 'D' | 'E' {
   return 'E'
 }
 
-/** Labels the well-known special-use ranges (RFC 1918 private space,
- * loopback, link-local, multicast, reserved) and falls back to "Public"
- * for everything else. */
+interface SpecialRange {
+  network: number
+  prefix: number
+  label: string
+}
+
+function specialRange(base: string, prefix: number, label: string): SpecialRange {
+  // `base` is always one of the hardcoded IANA range addresses below, so
+  // this can't actually fail — the `!` just satisfies parseIPv4's general
+  // "might be user input" signature.
+  return { network: parseIPv4(base)!, prefix, label }
+}
+
+/** The well-known IPv4 special-purpose ranges from the IANA special-purpose
+ * address registry that a general subnet calculator is expected to
+ * recognize, evaluated in order (first match wins). Order only matters
+ * where a narrower range sits inside a broader one — namely the exact
+ * 255.255.255.255/32 broadcast address inside the wider 240.0.0.0/4
+ * "Reserved" block, so the broadcast entry is listed first. */
+const SPECIAL_RANGES: SpecialRange[] = [
+  specialRange('0.0.0.0', 8, 'This network (RFC 791)'),
+  specialRange('10.0.0.0', 8, 'Private (RFC 1918)'),
+  specialRange('100.64.0.0', 10, 'Shared Address Space (RFC 6598)'),
+  specialRange('127.0.0.0', 8, 'Loopback (RFC 1122)'),
+  specialRange('169.254.0.0', 16, 'Link-local (RFC 3927)'),
+  specialRange('172.16.0.0', 12, 'Private (RFC 1918)'),
+  specialRange('192.0.2.0', 24, 'Documentation (RFC 5737)'),
+  specialRange('192.168.0.0', 16, 'Private (RFC 1918)'),
+  specialRange('198.51.100.0', 24, 'Documentation (RFC 5737)'),
+  specialRange('203.0.113.0', 24, 'Documentation (RFC 5737)'),
+  specialRange('224.0.0.0', 4, 'Multicast'),
+  specialRange('255.255.255.255', 32, 'Limited Broadcast (RFC 919)'),
+  specialRange('240.0.0.0', 4, 'Reserved'),
+]
+
+/** Labels `ip` with the IANA special-purpose range it falls in — RFC 1918
+ * private space, loopback, link-local, "this network", CGNAT shared space,
+ * documentation ranges, multicast, the limited broadcast address, and the
+ * remaining reserved block — falling back to "Public" for everything else. */
 export function addressTypeOf(ip: number): string {
-  const a = ip >>> 24
-  const b = (ip >>> 16) & 255
-  if (a === 10) return 'Private (RFC 1918)'
-  if (a === 172 && b >= 16 && b <= 31) return 'Private (RFC 1918)'
-  if (a === 192 && b === 168) return 'Private (RFC 1918)'
-  if (a === 127) return 'Loopback'
-  if (a === 169 && b === 254) return 'Link-local'
-  if (a >= 224 && a <= 239) return 'Multicast'
-  if (a >= 240) return 'Reserved'
+  for (const { network, prefix, label } of SPECIAL_RANGES) {
+    if ((ip & maskFromPrefix(prefix)) >>> 0 === network) return label
+  }
   return 'Public'
 }
 

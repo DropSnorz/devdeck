@@ -82,22 +82,56 @@ describe('ipClassOf', () => {
 })
 
 describe('addressTypeOf', () => {
-  it('labels RFC 1918 private ranges', () => {
-    expect(addressTypeOf(parseIPv4('10.1.2.3')!)).toBe('Private (RFC 1918)')
-    expect(addressTypeOf(parseIPv4('172.16.5.5')!)).toBe('Private (RFC 1918)')
+  it('labels RFC 1918 private ranges, including their boundaries', () => {
+    expect(addressTypeOf(parseIPv4('10.0.0.0')!)).toBe('Private (RFC 1918)')
+    expect(addressTypeOf(parseIPv4('10.255.255.255')!)).toBe('Private (RFC 1918)')
+    expect(addressTypeOf(parseIPv4('172.16.0.0')!)).toBe('Private (RFC 1918)')
     expect(addressTypeOf(parseIPv4('172.31.255.255')!)).toBe('Private (RFC 1918)')
-    expect(addressTypeOf(parseIPv4('192.168.0.1')!)).toBe('Private (RFC 1918)')
+    expect(addressTypeOf(parseIPv4('192.168.0.0')!)).toBe('Private (RFC 1918)')
+    expect(addressTypeOf(parseIPv4('192.168.255.255')!)).toBe('Private (RFC 1918)')
   })
 
-  it('does not treat 172.32.x.x as private', () => {
-    expect(addressTypeOf(parseIPv4('172.32.0.1')!)).toBe('Public')
+  it('does not treat addresses just outside the 172.16.0.0/12 block as private', () => {
+    expect(addressTypeOf(parseIPv4('172.15.255.255')!)).toBe('Public')
+    expect(addressTypeOf(parseIPv4('172.32.0.0')!)).toBe('Public')
   })
 
-  it('labels loopback, link-local, multicast, and reserved ranges', () => {
-    expect(addressTypeOf(parseIPv4('127.0.0.1')!)).toBe('Loopback')
-    expect(addressTypeOf(parseIPv4('169.254.1.1')!)).toBe('Link-local')
+  it('labels "this network" (0.0.0.0/8)', () => {
+    expect(addressTypeOf(parseIPv4('0.0.0.0')!)).toBe('This network (RFC 791)')
+    expect(addressTypeOf(parseIPv4('0.255.255.255')!)).toBe('This network (RFC 791)')
+  })
+
+  it('labels loopback and link-local ranges', () => {
+    expect(addressTypeOf(parseIPv4('127.0.0.1')!)).toBe('Loopback (RFC 1122)')
+    expect(addressTypeOf(parseIPv4('127.255.255.255')!)).toBe('Loopback (RFC 1122)')
+    expect(addressTypeOf(parseIPv4('169.254.1.1')!)).toBe('Link-local (RFC 3927)')
+  })
+
+  it('labels the CGNAT shared address space (100.64.0.0/10), not as public', () => {
+    expect(addressTypeOf(parseIPv4('100.64.0.1')!)).toBe('Shared Address Space (RFC 6598)')
+    expect(addressTypeOf(parseIPv4('100.127.255.255')!)).toBe('Shared Address Space (RFC 6598)')
+  })
+
+  it('does not treat addresses just outside 100.64.0.0/10 as shared address space', () => {
+    expect(addressTypeOf(parseIPv4('100.63.255.255')!)).toBe('Public')
+    expect(addressTypeOf(parseIPv4('100.128.0.0')!)).toBe('Public')
+  })
+
+  it('labels the RFC 5737 documentation ranges', () => {
+    expect(addressTypeOf(parseIPv4('192.0.2.1')!)).toBe('Documentation (RFC 5737)')
+    expect(addressTypeOf(parseIPv4('198.51.100.1')!)).toBe('Documentation (RFC 5737)')
+    expect(addressTypeOf(parseIPv4('203.0.113.1')!)).toBe('Documentation (RFC 5737)')
+  })
+
+  it('labels multicast and reserved ranges', () => {
     expect(addressTypeOf(parseIPv4('224.0.0.5')!)).toBe('Multicast')
+    expect(addressTypeOf(parseIPv4('239.255.255.255')!)).toBe('Multicast')
     expect(addressTypeOf(parseIPv4('240.0.0.1')!)).toBe('Reserved')
+    expect(addressTypeOf(parseIPv4('255.255.255.254')!)).toBe('Reserved')
+  })
+
+  it('labels the limited broadcast address distinctly from the surrounding reserved block', () => {
+    expect(addressTypeOf(parseIPv4('255.255.255.255')!)).toBe('Limited Broadcast (RFC 919)')
   })
 
   it('labels everything else public', () => {
