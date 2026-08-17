@@ -18,6 +18,7 @@ import { unitConverterDefinition } from './unit-converter/definition'
 import { statisticsCalculatorDefinition } from './statistics-calculator/definition'
 import { notesDefinition } from './notes/definition'
 import { subnetCalculatorDefinition } from './subnet-calculator/definition'
+import { passwordGeneratorDefinition } from './password-generator/definition'
 
 /** Single source of truth for every widget DevDeck knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -41,6 +42,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   statisticsCalculatorDefinition,
   notesDefinition,
   subnetCalculatorDefinition,
+  passwordGeneratorDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
