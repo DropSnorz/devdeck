@@ -7,11 +7,10 @@ function getOutput() {
   return screen.getByPlaceholderText<HTMLInputElement>(/generated password/i)
 }
 
-// fireEvent.change rather than clear+type for the length field — NumberField
-// clamps on every keystroke, so typing digit-by-digit into an
-// already-controlled value below the minimum produces intermediate clamped
-// states instead of landing on the intended number (see
-// NumberBaseConverterWidget.test.tsx for the same pattern).
+// fireEvent.change is just a direct, one-step way to set the length field
+// for tests that don't care about the keystroke sequence itself — see the
+// "backspacing" test below for coverage of real keystroke-by-keystroke
+// editing (NumberField.test.tsx covers that field in isolation).
 function setLength(value: string) {
   fireEvent.change(screen.getByLabelText(/length/i), { target: { value } })
 }
@@ -83,5 +82,21 @@ describe('PasswordGeneratorWidget', () => {
     setLength('4')
 
     expect(screen.getByText(/very weak/i)).toBeInTheDocument()
+  })
+
+  it('lets the length be reduced by backspacing and retyping a smaller number', async () => {
+    // Regression test for a real bug report: backspacing "5" down to blank
+    // used to clamp-and-redisplay "4" (the field's min) on that very
+    // keystroke, so the next keystroke landed as an append ("44") instead
+    // of a replacement — the length could never actually be lowered to 4.
+    const user = userEvent.setup()
+    render(<PasswordGeneratorWidget instanceId="test" mode="grid" />)
+
+    const lengthInput = screen.getByLabelText(/length/i)
+    setLength('5')
+    await user.click(lengthInput)
+    await user.keyboard('{End}{Backspace}4')
+
+    expect(lengthInput).toHaveValue(4)
   })
 })
