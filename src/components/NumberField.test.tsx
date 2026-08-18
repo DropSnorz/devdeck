@@ -43,7 +43,7 @@ describe('NumberField', () => {
     expect(input).toHaveValue(20)
   })
 
-  it('clamps an out-of-range value to `min`/`max` on blur', async () => {
+  it('clamps a below-`min` value to `min` on blur', async () => {
     const user = userEvent.setup()
     render(<Harness initial={5} min={4} max={128} />)
 
@@ -54,6 +54,19 @@ describe('NumberField', () => {
 
     await user.tab()
     expect(input).toHaveValue(4)
+  })
+
+  it('clamps an above-`max` value to `max` on blur', async () => {
+    const user = userEvent.setup()
+    render(<Harness initial={5} min={4} max={128} />)
+
+    const input = screen.getByLabelText('Length')
+    await user.click(input)
+    await user.keyboard('{End}{Backspace}999')
+    expect(input).toHaveValue(999)
+
+    await user.tab()
+    expect(input).toHaveValue(128)
   })
 
   it('reverts to the last valid value on blur if left blank', async () => {
