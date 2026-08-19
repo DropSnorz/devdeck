@@ -77,6 +77,11 @@ export interface ParsedCertificate {
   publicKey: PublicKeyInfo
   extensions: ParsedExtension[]
   signatureValueHex: string
+  /** True when `tbsCertificate.signature` doesn't match the outer
+   * `signatureAlgorithm` — RFC 5280 requires them to agree, but a viewer's
+   * job is to show what a certificate says even when it's malformed, so
+   * this is surfaced as a flag rather than a parse failure. */
+  signatureAlgorithmMismatch: boolean
   /** Raw DER bytes of the whole certificate — what fingerprints hash. */
   der: Uint8Array
 }
@@ -411,9 +416,7 @@ export function parseCertificateDer(der: Uint8Array): ParsedCertificate {
   }
 
   const signatureAlgorithmOid = readObjectIdentifier(childAt(outerSigAlgNode, 0, 'signature algorithm OID'))
-  if (signatureAlgorithmOid !== tbsSigAlgOid) {
-    throw new CertificateParseError('tbsCertificate.signature does not match the outer signatureAlgorithm')
-  }
+  const signatureAlgorithmMismatch = signatureAlgorithmOid !== tbsSigAlgOid
   const { bytes: signatureBytes } = readBitString(signatureValueNode)
 
   return {
@@ -431,6 +434,7 @@ export function parseCertificateDer(der: Uint8Array): ParsedCertificate {
     publicKey,
     extensions,
     signatureValueHex: bytesToHex(signatureBytes),
+    signatureAlgorithmMismatch,
     der,
   }
 }
@@ -460,10 +464,14 @@ export function pemBlockToDer(block: string): Uint8Array {
   return bytes
 }
 
-/** Parses every certificate found in the pasted text. Throws if none were
- * found at all; a failure decoding one certificate in a multi-cert paste is
- * reported with its position so the user can tell which block is bad. */
-export function parseCertificatesFromInput(input: string): ParsedCertificate[] {
+export type CertificateResult = { status: 'ok'; cert: ParsedCertificate } | { status: 'error'; message: string }
+
+/** Parses every certificate found in the pasted text, one result per block.
+ * Throws only when no PEM block was found at all — once there's at least
+ * one block, a failure decoding it is reported as that block's own `error`
+ * result rather than discarding every other (possibly valid) certificate in
+ * the same paste, e.g. a chain with one truncated intermediate. */
+export function parseCertificatesFromInput(input: string): CertificateResult[] {
   const blocks = extractPemCertificateBlocks(input)
   if (blocks.length === 0) {
     throw new CertificateParseError(
@@ -472,10 +480,10 @@ export function parseCertificatesFromInput(input: string): ParsedCertificate[] {
   }
   return blocks.map((block, index) => {
     try {
-      return parseCertificateDer(pemBlockToDer(block))
+      return { status: 'ok', cert: parseCertificateDer(pemBlockToDer(block)) }
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err)
-      throw new CertificateParseError(blocks.length > 1 ? `Certificate #${index + 1}: ${reason}` : reason)
+      return { status: 'error', message: blocks.length > 1 ? `Certificate #${index + 1}: ${reason}` : reason }
     }
   })
 }

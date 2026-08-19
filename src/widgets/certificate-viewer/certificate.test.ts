@@ -1,15 +1,29 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import {
   CertificateParseError,
   extractPemCertificateBlocks,
   parseCertificateDer,
   parseCertificatesFromInput,
   pemBlockToDer,
+  type ParsedCertificate,
 } from './certificate'
 import { EC_CA_CERT_PEM, RSA_LEAF_CERT_PEM } from './fixtures'
 
+/** Unwraps a single-block `parseCertificatesFromInput` result, failing with
+ * a normal assertion (attributed to the calling test) rather than letting a
+ * parse error surface as a suite collection error. */
+function parseOk(pem: string): ParsedCertificate {
+  const [result] = parseCertificatesFromInput(pem)
+  expect(result.status).toBe('ok')
+  if (result.status !== 'ok') throw new Error('unreachable — asserted above')
+  return result.cert
+}
+
 describe('parseCertificatesFromInput — RSA leaf certificate', () => {
-  const [cert] = parseCertificatesFromInput(RSA_LEAF_CERT_PEM)
+  let cert: ParsedCertificate
+  beforeAll(() => {
+    cert = parseOk(RSA_LEAF_CERT_PEM)
+  })
 
   it('reads version and serial number', () => {
     expect(cert.version).toBe(3)
@@ -30,6 +44,7 @@ describe('parseCertificatesFromInput — RSA leaf certificate', () => {
 
   it('reads the signature algorithm', () => {
     expect(cert.signatureAlgorithmName).toBe('sha256WithRSAEncryption')
+    expect(cert.signatureAlgorithmMismatch).toBe(false)
   })
 
   it('reads the RSA public key', () => {
@@ -84,7 +99,10 @@ describe('parseCertificatesFromInput — RSA leaf certificate', () => {
 })
 
 describe('parseCertificatesFromInput — EC CA certificate', () => {
-  const [cert] = parseCertificatesFromInput(EC_CA_CERT_PEM)
+  let cert: ParsedCertificate
+  beforeAll(() => {
+    cert = parseOk(EC_CA_CERT_PEM)
+  })
 
   it('reads the EC public key and named curve', () => {
     expect(cert.publicKey).toEqual({ kind: 'ec', curve: 'P-256', keySizeBits: 256 })
@@ -136,26 +154,33 @@ describe('parseCertificatesFromInput — error handling', () => {
     expect(() => parseCertificatesFromInput('hello world')).toThrow(CertificateParseError)
   })
 
-  it('throws for a PEM block with invalid base64', () => {
+  it('reports an error result (without throwing) for a PEM block with invalid base64', () => {
     const bad = '-----BEGIN CERTIFICATE-----\nnot-base64!!!\n-----END CERTIFICATE-----'
-    expect(() => parseCertificatesFromInput(bad)).toThrow(CertificateParseError)
+    const [result] = parseCertificatesFromInput(bad)
+    expect(result.status).toBe('error')
   })
 
-  it('throws for well-formed base64 that is not a valid certificate', () => {
+  it('reports an error result for well-formed base64 that is not a valid certificate', () => {
     const bad = `-----BEGIN CERTIFICATE-----\n${btoa('this is not DER')}\n-----END CERTIFICATE-----`
-    expect(() => parseCertificatesFromInput(bad)).toThrow(CertificateParseError)
+    const [result] = parseCertificatesFromInput(bad)
+    expect(result.status).toBe('error')
   })
 
-  it('numbers the failing certificate in a multi-cert paste', () => {
+  it('numbers the failing certificate in a multi-cert paste, without discarding the valid one', () => {
     const bad = `-----BEGIN CERTIFICATE-----\n${btoa('nope')}\n-----END CERTIFICATE-----`
-    expect(() => parseCertificatesFromInput(`${RSA_LEAF_CERT_PEM}\n${bad}`)).toThrow('Certificate #2')
+    const results = parseCertificatesFromInput(`${RSA_LEAF_CERT_PEM}\n${bad}`)
+    expect(results).toHaveLength(2)
+    expect(results[0].status).toBe('ok')
+    expect(results[1]).toEqual({ status: 'error', message: expect.stringContaining('Certificate #2') })
   })
 
   it('parses multiple certificates from one paste', () => {
-    const certs = parseCertificatesFromInput(`${RSA_LEAF_CERT_PEM}\n${EC_CA_CERT_PEM}`)
-    expect(certs).toHaveLength(2)
-    expect(certs[0].publicKey.kind).toBe('rsa')
-    expect(certs[1].publicKey.kind).toBe('ec')
+    const results = parseCertificatesFromInput(`${RSA_LEAF_CERT_PEM}\n${EC_CA_CERT_PEM}`)
+    expect(results).toHaveLength(2)
+    expect(results[0].status).toBe('ok')
+    expect(results[1].status).toBe('ok')
+    expect(results[0].status === 'ok' && results[0].cert.publicKey.kind).toBe('rsa')
+    expect(results[1].status === 'ok' && results[1].cert.publicKey.kind).toBe('ec')
   })
 })
 
@@ -163,7 +188,7 @@ describe('parseCertificateDer', () => {
   it('is the same as going through parseCertificatesFromInput for a single block', () => {
     const der = pemBlockToDer(RSA_LEAF_CERT_PEM)
     const direct = parseCertificateDer(der)
-    const [viaInput] = parseCertificatesFromInput(RSA_LEAF_CERT_PEM)
+    const viaInput = parseOk(RSA_LEAF_CERT_PEM)
     expect(direct.subjectString).toBe(viaInput.subjectString)
   })
 })

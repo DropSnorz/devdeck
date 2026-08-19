@@ -114,4 +114,16 @@ describe('CertificateViewerWidget', () => {
     const keyUsageLabel = await screen.findByText('keyUsage')
     expect(within(keyUsageLabel.parentElement as HTMLElement).getByText('critical')).toBeInTheDocument()
   })
+
+  it('still renders the valid certificate when a chain includes one bad block', async () => {
+    const user = userEvent.setup()
+    render(<CertificateViewerWidget instanceId="test" mode="grid" />)
+
+    const bad = `-----BEGIN CERTIFICATE-----\n${btoa('nope')}\n-----END CERTIFICATE-----`
+    await user.click(screen.getByPlaceholderText(/paste one or more pem certificates/i))
+    await user.paste(`${RSA_LEAF_CERT_PEM}\n${bad}`)
+
+    expect(await screen.findByText('devdeck.example.com')).toBeInTheDocument()
+    expect(screen.getByText(/certificate #2/i)).toBeInTheDocument()
+  })
 })

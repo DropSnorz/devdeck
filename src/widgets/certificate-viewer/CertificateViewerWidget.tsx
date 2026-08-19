@@ -9,6 +9,7 @@ import type { WidgetProps } from '@/widgets/types'
 import {
   CertificateParseError,
   parseCertificatesFromInput,
+  type CertificateResult,
   type ExtensionDetail,
   type ParsedCertificate,
   type PublicKeyInfo,
@@ -33,8 +34,9 @@ function formatPublicKey(key: PublicKeyInfo): string {
  * subject's Common Name, falling back to the full subject string for
  * certificates (rare, but valid) that have none. */
 function shortLabel(cert: ParsedCertificate): string {
-  const cn = cert.subject.flat().find((attr) => attr.oid === '2.5.4.3')
-  return cn?.value ?? cert.subjectString
+  // Named to avoid shadowing the `cn` classname helper imported above.
+  const commonName = cert.subject.flat().find((attr) => attr.oid === '2.5.4.3')
+  return commonName?.value ?? cert.subjectString
 }
 
 function bufferToColonHex(buffer: ArrayBuffer): string {
@@ -47,14 +49,14 @@ export default function CertificateViewerWidget({ instanceId }: WidgetProps) {
   const [input, setInput] = useWidgetState(instanceId, 'input', '')
   useWidgetDirty(instanceId, input.length > 0)
 
-  const { certificates, error } = useMemo(() => {
-    if (!input.trim()) return { certificates: [] as ParsedCertificate[], error: null as string | null }
+  const { results, error } = useMemo(() => {
+    if (!input.trim()) return { results: [] as CertificateResult[], error: null as string | null }
     try {
-      return { certificates: parseCertificatesFromInput(input), error: null }
+      return { results: parseCertificatesFromInput(input), error: null }
     } catch (err) {
       const message =
         err instanceof CertificateParseError || err instanceof Error ? err.message : 'Could not parse this certificate'
-      return { certificates: [], error: message }
+      return { results: [], error: message }
     }
   }, [input])
 
@@ -68,22 +70,40 @@ export default function CertificateViewerWidget({ instanceId }: WidgetProps) {
         className="h-16 w-full resize-none p-2 font-mono text-xs"
       />
       {error && <ErrorMessage>{error}</ErrorMessage>}
-      {certificates.length > 0 && (
+      {results.length > 0 && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto text-xs">
-          {certificates.map((cert, index) => (
-            // Keyed on the cert's own DER bytes so pasting a different
-            // certificate resets each card back to its default open/closed
-            // state instead of preserving whatever the previous cert's
-            // <details> happened to be at.
-            <CertificateCard
-              key={index}
-              cert={cert}
-              defaultOpen={index === 0}
-              label={certificates.length > 1 ? `Certificate ${index + 1} of ${certificates.length}` : null}
-            />
-          ))}
+          {results.map((result, index) => {
+            const label = results.length > 1 ? `Certificate ${index + 1} of ${results.length}` : null
+            if (result.status === 'error') {
+              // Index is fine here — unlike CertificateCard below, an error
+              // card carries no open/closed state that could leak between
+              // certificates when the list is re-keyed.
+              return <CertificateErrorCard key={index} label={label} message={result.message} />
+            }
+            return (
+              // Keyed on the certificate's own identity (not its position)
+              // so pasting a different certificate at the same spot resets
+              // its card back to its default open/closed state instead of
+              // preserving whatever the previous cert's <details> was at.
+              <CertificateCard
+                key={`${result.cert.issuerString}|${result.cert.serialNumberHex}`}
+                cert={result.cert}
+                defaultOpen={index === 0}
+                label={label}
+              />
+            )
+          })}
         </div>
       )}
+    </div>
+  )
+}
+
+function CertificateErrorCard({ label, message }: { label: string | null; message: string }) {
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2">
+      {label && <div className="mb-1 text-[10px] text-muted-foreground">{label}</div>}
+      <ErrorMessage>{message}</ErrorMessage>
     </div>
   )
 }
@@ -114,10 +134,18 @@ function CertificateCard({
         <DetailRow label="Not before" value={cert.notBefore.toUTCString()} mono={false} />
         <DetailRow label="Not after" value={cert.notAfter.toUTCString()} mono={false} />
         <DetailRow label="Signature algorithm" value={cert.signatureAlgorithmName} />
+        {cert.signatureAlgorithmMismatch && (
+          <ErrorMessage>
+            Malformed: the inner and outer signature algorithms disagree — this certificate violates RFC 5280.
+          </ErrorMessage>
+        )}
         <DetailRow label="Public key" value={formatPublicKey(cert.publicKey)} mono={false} />
         <Fingerprints der={cert.der} />
-        {cert.extensions.map((ext) => (
-          <ExtensionRow key={ext.oid} extension={ext} />
+        {cert.extensions.map((ext, index) => (
+          // Index-prefixed because RFC 5280 forbids repeated extension
+          // OIDs, but this parses untrusted, possibly-malformed input — a
+          // duplicate ext.oid alone would collide.
+          <ExtensionRow key={`${index}-${ext.oid}`} extension={ext} />
         ))}
       </div>
     </details>
@@ -148,6 +176,13 @@ function ChipList({ items }: { items: string[] }) {
   )
 }
 
+// Evaluated once at module load, not per-render: `crypto.subtle` is only
+// undefined in an insecure context (plain http, not localhost/https), which
+// can't change over the page's lifetime. Checking it here — rather than
+// inside the effect below — keeps the "unavailable" state derived instead
+// of requiring a synchronous setState in the effect body.
+const SUBTLE_CRYPTO_AVAILABLE = typeof crypto !== 'undefined' && !!crypto.subtle
+
 /** Renders the SHA-256/SHA-1 fingerprints of the whole DER-encoded
  * certificate. Computed asynchronously via WebCrypto (same pattern as
  * HashGeneratorWidget) rather than a bundled hash implementation. */
@@ -158,26 +193,33 @@ function Fingerprints({ der }: { der: Uint8Array }) {
   // get the same guarantee, which cascades an extra render for no benefit
   // here (the digest resolves within a tick either way).
   const [fingerprints, setFingerprints] = useState<{ der: Uint8Array; sha256: string; sha1: string } | null>(null)
+  // Set only from the .catch below — a digest can reject (e.g. a hardened
+  // runtime disabling SHA-1) even when crypto.subtle itself exists.
+  const [digestFailed, setDigestFailed] = useState(false)
 
   useEffect(() => {
+    if (!SUBTLE_CRYPTO_AVAILABLE) return
     let cancelled = false
     const bytes = new Uint8Array(der)
-    Promise.all([crypto.subtle.digest('SHA-256', bytes), crypto.subtle.digest('SHA-1', bytes)]).then(
-      ([sha256, sha1]) => {
+    Promise.all([crypto.subtle.digest('SHA-256', bytes), crypto.subtle.digest('SHA-1', bytes)])
+      .then(([sha256, sha1]) => {
         if (!cancelled) setFingerprints({ der, sha256: bufferToColonHex(sha256), sha1: bufferToColonHex(sha1) })
-      },
-    )
+      })
+      .catch(() => {
+        if (!cancelled) setDigestFailed(true)
+      })
     return () => {
       cancelled = true
     }
   }, [der])
 
   const current = fingerprints?.der === der ? fingerprints : null
+  const unavailable = !SUBTLE_CRYPTO_AVAILABLE || digestFailed
 
   return (
     <>
-      <DetailRow label="SHA-256 fingerprint" value={current?.sha256 ?? ''} />
-      <DetailRow label="SHA-1 fingerprint" value={current?.sha1 ?? ''} />
+      <DetailRow label="SHA-256 fingerprint" value={unavailable ? 'unavailable' : (current?.sha256 ?? '')} />
+      <DetailRow label="SHA-1 fingerprint" value={unavailable ? 'unavailable' : (current?.sha1 ?? '')} />
     </>
   )
 }

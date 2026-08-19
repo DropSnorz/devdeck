@@ -168,20 +168,29 @@ export function readSmallInteger(node: Asn1Node): number {
  * can reuse the same arc-decoding without a bogus universal-tag check. */
 export function oidBytesToString(bytes: Uint8Array): string {
   if (bytes.length === 0) throw new Asn1Error('Empty OBJECT IDENTIFIER')
-  const parts: number[] = []
-  // First byte encodes the first two arcs as (arc1 * 40 + arc2).
-  const first = bytes[0]
-  parts.push(Math.floor(first / 40), first % 40)
+  // Decode every subidentifier with the same base-128 continuation logic —
+  // including the first one, which also happens to encode two arcs at once.
+  // Decoding it with plain division (arc1 = floor(first/40)) only works
+  // while the first subidentifier fits in one byte; a root arc of 2 allows
+  // arc2 to run arbitrarily high (e.g. 2.100.3), which needs the same
+  // multi-byte form as any other subidentifier.
+  const subIds: number[] = []
   let value = 0
-  for (let i = 1; i < bytes.length; i++) {
-    const byte = bytes[i]
+  let pending = false
+  for (const byte of bytes) {
     value = value * 128 + (byte & 0x7f)
+    pending = true
     if ((byte & 0x80) === 0) {
-      parts.push(value)
+      subIds.push(value)
       value = 0
+      pending = false
     }
   }
-  return parts.join('.')
+  if (pending) throw new Asn1Error('Truncated OBJECT IDENTIFIER')
+  const first = subIds[0]
+  const arc1 = first < 80 ? Math.floor(first / 40) : 2
+  const arc2 = first < 80 ? first % 40 : first - 80
+  return [arc1, arc2, ...subIds.slice(1)].join('.')
 }
 
 export function readObjectIdentifier(node: Asn1Node): string {
