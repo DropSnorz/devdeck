@@ -41,6 +41,12 @@ const PRIVATE_FIELDS: Record<string, string[]> = {
   OKP: ['d'],
 }
 
+/** Fallback for a `kty` outside the four registered types above, which have
+ * no entry in `PRIVATE_FIELDS`: these member names are private in every
+ * type that defines them, so a non-standard/future key carrying one of them
+ * is still flagged rather than silently parsing as public. */
+const FALLBACK_PRIVATE_FIELDS = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'k']
+
 /** Members RFC 7518 requires for each key type — checked so a JWK missing
  * its actual key material (a common copy-paste or config bug) surfaces as
  * an error card instead of rendering a key with no key in it. Unlisted
@@ -163,7 +169,8 @@ function summarize(kty: string, keySizeBits: number | null, raw: Record<string, 
 
 function computeIsPrivate(kty: string, raw: Record<string, unknown>): boolean {
   if (kty === 'oct') return typeof raw.k === 'string'
-  return (PRIVATE_FIELDS[kty] ?? []).some((field) => typeof raw[field] === 'string')
+  const fields = PRIVATE_FIELDS[kty] ?? FALLBACK_PRIVATE_FIELDS
+  return fields.some((field) => typeof raw[field] === 'string')
 }
 
 function thumbprintCanonicalJson(kty: string, raw: Record<string, unknown>): string | null {

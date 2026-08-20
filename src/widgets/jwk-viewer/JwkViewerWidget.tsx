@@ -231,7 +231,9 @@ function DetailRow({
         <span className={cn('min-w-0 text-right break-all', mono && 'font-mono')} title={masked ? undefined : value}>
           {displayValue || '—'}
         </span>
-        <CopyButton value={value} label="" className="shrink-0 px-1" />
+        {/* Masked values aren't copyable until revealed — the mask is the
+         * only gate on this material, so a copy button would bypass it. */}
+        {!masked && <CopyButton value={value} label="" ariaLabel={`Copy ${label}`} className="shrink-0 px-1" />}
       </div>
     </div>
   )
@@ -272,20 +274,26 @@ const SUBTLE_CRYPTO_AVAILABLE = typeof crypto !== 'undefined' && !!crypto.subtle
  * HashGeneratorWidget) rather than a bundled hash implementation. */
 function Thumbprint({ jwk }: { jwk: ParsedJwk }) {
   const input = jwk.thumbprintInput
-  // Keyed on `input` alongside the value, so a stale thumbprint from a
-  // since-replaced key is never displayed.
-  const [result, setResult] = useState<{ input: string; thumbprint: string } | null>(null)
-  const [failed, setFailed] = useState(false)
+  // Both outcomes are tagged with the `input` they're for, so a stale
+  // result — success *or* failure — from a since-replaced key is never
+  // displayed. A KeyCard is keyed on kid alone, so editing a key's material
+  // without changing its kid keeps this component mounted across inputs;
+  // folding "failed" into this same keyed state (rather than a separate
+  // boolean that would otherwise outlive the input it was set for) is what
+  // lets a later, different input recover from an earlier rejection.
+  const [attempt, setAttempt] = useState<
+    { input: string; status: 'done'; thumbprint: string } | { input: string; status: 'failed' } | null
+  >(null)
 
   useEffect(() => {
     if (!input || !SUBTLE_CRYPTO_AVAILABLE) return
     let cancelled = false
     computeJwkThumbprint(input)
       .then((thumbprint) => {
-        if (!cancelled) setResult({ input, thumbprint })
+        if (!cancelled) setAttempt({ input, status: 'done', thumbprint })
       })
       .catch(() => {
-        if (!cancelled) setFailed(true)
+        if (!cancelled) setAttempt({ input, status: 'failed' })
       })
     return () => {
       cancelled = true
@@ -294,8 +302,9 @@ function Thumbprint({ jwk }: { jwk: ParsedJwk }) {
 
   if (!input) return null
 
-  const current = result?.input === input ? result : null
-  const unavailable = !SUBTLE_CRYPTO_AVAILABLE || failed
+  const current = attempt?.input === input ? attempt : null
+  const unavailable = !SUBTLE_CRYPTO_AVAILABLE || current?.status === 'failed'
+  const thumbprint = current?.status === 'done' ? current.thumbprint : ''
 
-  return <DetailRow label="Thumbprint (RFC 7638)" value={unavailable ? 'unavailable' : (current?.thumbprint ?? '')} />
+  return <DetailRow label="Thumbprint (RFC 7638)" value={unavailable ? 'unavailable' : thumbprint} />
 }

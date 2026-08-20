@@ -65,6 +65,24 @@ describe('JwkViewerWidget', () => {
     expect(screen.getByRole('button', { name: /hide private material/i })).toBeInTheDocument()
   })
 
+  it('has no copy control for a masked field, only for the revealed value', async () => {
+    const user = userEvent.setup()
+    render(<JwkViewerWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByPlaceholderText(/paste a jwk/i))
+    await user.paste(RSA_PRIVATE_JWK)
+    await screen.findByText('Private')
+
+    // Masked: no copy button lets the value out before it's revealed.
+    expect(screen.queryByRole('button', { name: /copy d$/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /reveal private material/i }))
+
+    // Revealed: the value is visible and now has its own copy button.
+    await screen.findByText(/^I2tGRyqqmqf0/)
+    expect(screen.getByRole('button', { name: /copy d$/i })).toBeInTheDocument()
+  })
+
   it('treats an oct key as private since it is pure secret material', async () => {
     const user = userEvent.setup()
     render(<JwkViewerWidget instanceId="test" mode="grid" />)

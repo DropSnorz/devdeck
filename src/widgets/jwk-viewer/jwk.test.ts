@@ -79,6 +79,17 @@ describe('parseJwkInput', () => {
     expect(jwk.summary).toBe('Symmetric key (256-bit)')
   })
 
+  it('flags private material on an unrecognized kty via the generic fallback fields', () => {
+    // No REQUIRED_FIELDS/PRIVATE_FIELDS entry exists for this made-up type,
+    // so this only passes if computeIsPrivate falls back to checking the
+    // generic private member names instead of defaulting to "public".
+    const withD = firstOk('{"kty":"future-type","x":"abc","d":"secret"}')
+    expect(withD.isPrivate).toBe(true)
+
+    const withoutD = firstOk('{"kty":"future-type","x":"abc"}')
+    expect(withoutD.isPrivate).toBe(false)
+  })
+
   it('parses every key in a JWK Set', () => {
     const results = parseJwkInput(JWK_SET)
     expect(results).toHaveLength(2)
