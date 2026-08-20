@@ -69,4 +69,15 @@ describe('ColorConverterWidget', () => {
     expect(hexField()).toHaveValue('#00ff00')
     expect(rgbField()).toHaveValue('rgb(0, 255, 0)')
   })
+
+  it('shows both picker buttons, disabled where the browser lacks the underlying API', () => {
+    // jsdom has neither window.EyeDropper nor navigator.mediaDevices.getDisplayMedia
+    // (matching e.g. Firefox for the screen picker) — both buttons should stay
+    // visible rather than disappear, just disabled. Their supported behavior
+    // is covered by PageColorPicker's and ScreenColorPicker's own tests.
+    render(<ColorConverterWidget instanceId="test" mode="grid" />)
+
+    expect(screen.getByRole('button', { name: /pick color from page/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /pick color from screen/i })).toBeDisabled()
+  })
 })
