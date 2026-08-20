@@ -3,6 +3,8 @@ import { colord, type Colord } from 'colord'
 import { CopyButton } from '@/components/CopyButton'
 import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
+import { PageColorPicker } from '@/components/PageColorPicker'
+import { ScreenColorPicker } from '@/components/ScreenColorPicker'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -57,23 +59,29 @@ export default function ColorConverterWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <Input
           type="color"
           value={color.toHex()}
           onChange={(event) => handleNativePicker(event.target.value)}
-          className="h-9 w-9 shrink-0 cursor-pointer p-0"
+          className="h-9 min-w-0 flex-1 cursor-pointer p-0"
           aria-label="Pick a color"
         />
-        <div
-          className="h-9 flex-1 rounded border border-input"
-          style={{ backgroundColor: color.toRgbString() }}
-        />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <PageColorPicker onPick={handleNativePicker} />
+          <ScreenColorPicker onPick={handleNativePicker} />
+        </div>
       </div>
 
       <ColorField label="HEX" value={hexInput} onChange={handleHexChange} />
       <ColorField label="RGB" value={rgbInput} onChange={handleRgbChange} />
       <ColorField label="HSL" value={hslInput} onChange={handleHslChange} />
+
+      <div
+        className="h-3 shrink-0 rounded border border-input"
+        style={{ backgroundColor: color.toRgbString() }}
+        aria-hidden="true"
+      />
     </div>
   )
 }
