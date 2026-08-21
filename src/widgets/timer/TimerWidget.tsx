@@ -1,0 +1,419 @@
+import { useEffect, useState } from 'react'
+import { Flag, Pause, Play, RotateCcw } from 'lucide-react'
+import { NumberField } from '@/components/NumberField'
+import { ErrorMessage } from '@/components/ErrorMessage'
+import { Button } from '@/components/ui/button'
+import { SegmentedControl } from '@/components/SegmentedControl'
+import { cn } from '@/lib/utils'
+import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
+import type { WidgetProps } from '@/widgets/types'
+import {
+  clampPart,
+  computeStopwatchElapsedMs,
+  durationFromParts,
+  formatClockDate,
+  formatClockTime,
+  formatCountdownTime,
+  formatStopwatchTime,
+  type TimerMode,
+} from './timer'
+
+const COUNTDOWN_PRESETS: { label: string; hours: number; minutes: number; seconds: number }[] = [
+  { label: '1 min', hours: 0, minutes: 1, seconds: 0 },
+  { label: '5 min', hours: 0, minutes: 5, seconds: 0 },
+  { label: '10 min', hours: 0, minutes: 10, seconds: 0 },
+  { label: '30 min', hours: 0, minutes: 30, seconds: 0 },
+]
+
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+/** Three-in-one time widget: a live local clock, a lap-capable stopwatch,
+ * and a countdown timer that alerts on completion. Sharing one widget
+ * (rather than three) keeps the tool browser from getting cluttered with
+ * near-duplicate entries, and lets a single dashboard cell serve whichever
+ * of the three someone reaches for at a given moment. */
+export default function TimerWidget({ instanceId }: WidgetProps) {
+  const [mode, setMode] = useWidgetState<TimerMode>(instanceId, 'mode', 'clock')
+
+  const [swRunning, setSwRunning] = useWidgetState(instanceId, 'swRunning', false)
+  const [swAccumulatedMs, setSwAccumulatedMs] = useWidgetState(instanceId, 'swAccumulatedMs', 0)
+  const [swStartedAt, setSwStartedAt] = useWidgetState<number | null>(instanceId, 'swStartedAt', null)
+  const [swLaps, setSwLaps] = useWidgetState<number[]>(instanceId, 'swLaps', [])
+
+  const [cdHours, setCdHours] = useWidgetState(instanceId, 'cdHours', 0)
+  const [cdMinutes, setCdMinutes] = useWidgetState(instanceId, 'cdMinutes', 5)
+  const [cdSeconds, setCdSeconds] = useWidgetState(instanceId, 'cdSeconds', 0)
+  const [cdRemainingMs, setCdRemainingMs] = useWidgetState(instanceId, 'cdRemainingMs', 0)
+  const [cdEndAt, setCdEndAt] = useWidgetState<number | null>(instanceId, 'cdEndAt', null)
+  const [cdRunning, setCdRunning] = useWidgetState(instanceId, 'cdRunning', false)
+  const [cdStarted, setCdStarted] = useWidgetState(instanceId, 'cdStarted', false)
+  const [cdFinished, setCdFinished] = useWidgetState(instanceId, 'cdFinished', false)
+
+  // Only an actually-run stopwatch or countdown counts as "dirty" — like
+  // JsonFormatterWidget's viewMode, switching tabs or nudging the countdown
+  // fields without starting anything isn't a meaningful change to persist.
+  useWidgetDirty(instanceId, swRunning || swAccumulatedMs > 0 || swLaps.length > 0 || cdStarted)
+
+  // Ticks the shared clock while whichever section is actually visible
+  // needs live updates — the clock face once a second, the stopwatch every
+  // 100ms for smooth centiseconds, the countdown once a second (it only
+  // displays whole seconds). A mode/segment not currently shown keeps its
+  // state (elapsed time, remaining time) but stops re-rendering, which is
+  // fine: both are derived from real timestamps, not from tick count, so
+  // switching back immediately shows the correct value.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (mode === 'clock') {
+      const id = setInterval(() => setNow(Date.now()), 1000)
+      return () => clearInterval(id)
+    }
+    if (mode === 'stopwatch' && swRunning) {
+      const id = setInterval(() => setNow(Date.now()), 100)
+      return () => clearInterval(id)
+    }
+    if (mode === 'countdown' && cdRunning) {
+      const id = setInterval(() => setNow(Date.now()), 1000)
+      return () => clearInterval(id)
+    }
+  }, [mode, swRunning, cdRunning])
+
+  const elapsedMs = computeStopwatchElapsedMs({ accumulatedMs: swAccumulatedMs, startedAt: swStartedAt }, now)
+  const remainingMs = cdRunning && cdEndAt !== null ? Math.max(0, cdEndAt - now) : cdRemainingMs
+  const countdownDurationMs = durationFromParts(cdHours, cdMinutes, cdSeconds)
+
+  // Fires once remaining time hits zero while running — stops the
+  // countdown, flags it finished, and plays the alert.
+  useEffect(() => {
+    if (!cdRunning || remainingMs > 0) return
+    setCdRunning(false)
+    setCdEndAt(null)
+    setCdRemainingMs(0)
+    setCdFinished(true)
+    playAlarm()
+  }, [cdRunning, remainingMs, setCdRunning, setCdEndAt, setCdRemainingMs, setCdFinished])
+
+  const handleStopwatchStartPause = () => {
+    if (swRunning) {
+      setSwAccumulatedMs(elapsedMs)
+      setSwStartedAt(null)
+      setSwRunning(false)
+    } else {
+      setSwStartedAt(Date.now())
+      setSwRunning(true)
+    }
+  }
+  const handleStopwatchLap = () => setSwLaps((prev) => [elapsedMs, ...prev])
+  const handleStopwatchReset = () => {
+    setSwRunning(false)
+    setSwStartedAt(null)
+    setSwAccumulatedMs(0)
+    setSwLaps([])
+  }
+
+  const handleCountdownStart = () => {
+    if (countdownDurationMs <= 0) return
+    setCdRemainingMs(countdownDurationMs)
+    setCdEndAt(Date.now() + countdownDurationMs)
+    setCdRunning(true)
+    setCdStarted(true)
+    setCdFinished(false)
+  }
+  const handleCountdownPause = () => {
+    setCdRemainingMs(remainingMs)
+    setCdEndAt(null)
+    setCdRunning(false)
+  }
+  const handleCountdownResume = () => {
+    setCdEndAt(Date.now() + cdRemainingMs)
+    setCdRunning(true)
+  }
+  const handleCountdownReset = () => {
+    setCdRunning(false)
+    setCdStarted(false)
+    setCdFinished(false)
+    setCdEndAt(null)
+    setCdRemainingMs(countdownDurationMs)
+  }
+  const applyCountdownPreset = (preset: (typeof COUNTDOWN_PRESETS)[number]) => {
+    setCdHours(preset.hours)
+    setCdMinutes(preset.minutes)
+    setCdSeconds(preset.seconds)
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-2 text-xs">
+      <SegmentedControl
+        value={mode}
+        onChange={setMode}
+        className="self-start"
+        options={[
+          { label: 'Clock', value: 'clock' },
+          { label: 'Stopwatch', value: 'stopwatch' },
+          { label: 'Countdown', value: 'countdown' },
+        ]}
+      />
+
+      {mode === 'clock' && <ClockPanel now={now} />}
+
+      {mode === 'stopwatch' && (
+        <StopwatchPanel
+          elapsedMs={elapsedMs}
+          running={swRunning}
+          laps={swLaps}
+          onStartPause={handleStopwatchStartPause}
+          onLap={handleStopwatchLap}
+          onReset={handleStopwatchReset}
+        />
+      )}
+
+      {mode === 'countdown' && (
+        <CountdownPanel
+          hours={cdHours}
+          minutes={cdMinutes}
+          seconds={cdSeconds}
+          onHoursChange={(v) => setCdHours(clampPart(v, 99))}
+          onMinutesChange={(v) => setCdMinutes(clampPart(v, 59))}
+          onSecondsChange={(v) => setCdSeconds(clampPart(v, 59))}
+          onApplyPreset={applyCountdownPreset}
+          durationMs={countdownDurationMs}
+          remainingMs={remainingMs}
+          running={cdRunning}
+          started={cdStarted}
+          finished={cdFinished}
+          onStart={handleCountdownStart}
+          onPause={handleCountdownPause}
+          onResume={handleCountdownResume}
+          onReset={handleCountdownReset}
+        />
+      )}
+    </div>
+  )
+}
+
+function ClockPanel({ now }: { now: number }) {
+  const date = new Date(now)
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-1">
+      <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">{formatClockTime(date)}</span>
+      <span className="text-muted-foreground">{formatClockDate(date)}</span>
+      <span className="text-[11px] text-muted-foreground">{TIME_ZONE}</span>
+    </div>
+  )
+}
+
+function StopwatchPanel({
+  elapsedMs,
+  running,
+  laps,
+  onStartPause,
+  onLap,
+  onReset,
+}: {
+  elapsedMs: number
+  running: boolean
+  laps: number[]
+  onStartPause: () => void
+  onLap: () => void
+  onReset: () => void
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col items-center justify-center gap-1">
+        <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
+          {formatStopwatchTime(elapsedMs)}
+        </span>
+      </div>
+
+      <div className="flex justify-center gap-1.5">
+        <Button type="button" size="sm" onClick={onStartPause} className="w-20">
+          {running ? (
+            <>
+              <Pause className="size-3.5" />
+              Pause
+            </>
+          ) : (
+            <>
+              <Play className="size-3.5" />
+              {elapsedMs > 0 ? 'Resume' : 'Start'}
+            </>
+          )}
+        </Button>
+        <Button type="button" size="sm" variant="secondary" onClick={onLap} disabled={!running}>
+          <Flag className="size-3.5" />
+          Lap
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onReset}
+          disabled={!running && elapsedMs === 0 && laps.length === 0}
+        >
+          <RotateCcw className="size-3.5" />
+          Reset
+        </Button>
+      </div>
+
+      {laps.length > 0 && (
+        <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
+          {laps.map((lapMs, index) => {
+            const lapNumber = laps.length - index
+            const splitMs = index === laps.length - 1 ? lapMs : lapMs - laps[index + 1]
+            return (
+              <div
+                key={lapNumber}
+                className={cn(
+                  'flex items-center justify-between gap-2 px-2 py-1 font-mono',
+                  index > 0 && 'border-t border-border',
+                )}
+              >
+                <span className="shrink-0 text-muted-foreground">Lap {lapNumber}</span>
+                <span className="text-foreground">{formatStopwatchTime(splitMs)}</span>
+                <span className="shrink-0 text-muted-foreground">{formatStopwatchTime(lapMs)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CountdownPanel({
+  hours,
+  minutes,
+  seconds,
+  onHoursChange,
+  onMinutesChange,
+  onSecondsChange,
+  onApplyPreset,
+  durationMs,
+  remainingMs,
+  running,
+  started,
+  finished,
+  onStart,
+  onPause,
+  onResume,
+  onReset,
+}: {
+  hours: number
+  minutes: number
+  seconds: number
+  onHoursChange: (value: number) => void
+  onMinutesChange: (value: number) => void
+  onSecondsChange: (value: number) => void
+  onApplyPreset: (preset: (typeof COUNTDOWN_PRESETS)[number]) => void
+  durationMs: number
+  remainingMs: number
+  running: boolean
+  started: boolean
+  finished: boolean
+  onStart: () => void
+  onPause: () => void
+  onResume: () => void
+  onReset: () => void
+}) {
+  if (!started) {
+    return (
+      <div className="flex flex-1 flex-col gap-2">
+        <div className="grid grid-cols-3 gap-1">
+          <NumberField label="Hours" value={hours} min={0} max={99} onChange={onHoursChange} />
+          <NumberField label="Minutes" value={minutes} min={0} max={59} onChange={onMinutesChange} />
+          <NumberField label="Seconds" value={seconds} min={0} max={59} onChange={onSecondsChange} />
+        </div>
+
+        <div className="flex flex-wrap gap-1">
+          {COUNTDOWN_PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              type="button"
+              variant="secondary"
+              onClick={() => onApplyPreset(preset)}
+              className="h-auto rounded px-1.5 py-1 text-muted-foreground"
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+
+        {durationMs <= 0 && <ErrorMessage>Set a duration greater than zero</ErrorMessage>}
+
+        <Button type="button" size="sm" onClick={onStart} disabled={durationMs <= 0} className="mt-auto w-fit">
+          <Play className="size-3.5" />
+          Start
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col items-center justify-center gap-1">
+        <span
+          className={cn(
+            'font-mono text-3xl font-semibold tabular-nums',
+            finished ? 'text-destructive' : 'text-foreground',
+          )}
+        >
+          {formatCountdownTime(remainingMs)}
+        </span>
+        {finished && <span className="font-medium text-destructive">Time&apos;s up!</span>}
+      </div>
+
+      <div className="flex justify-center gap-1.5">
+        {running ? (
+          <Button type="button" size="sm" onClick={onPause}>
+            <Pause className="size-3.5" />
+            Pause
+          </Button>
+        ) : (
+          !finished && (
+            <Button type="button" size="sm" onClick={onResume}>
+              <Play className="size-3.5" />
+              Resume
+            </Button>
+          )
+        )}
+        <Button type="button" size="sm" variant="outline" onClick={onReset}>
+          <RotateCcw className="size-3.5" />
+          Reset
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** Three short beeps via the Web Audio API — no bundled audio asset needed.
+ * Wrapped in try/catch since AudioContext can be unavailable (jsdom in
+ * tests, an older browser) or blocked by an autoplay policy; the visual
+ * "Time's up" state still communicates completion either way. */
+function playAlarm(): void {
+  try {
+    const Ctor =
+      window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!Ctor) return
+    const ctx = new Ctor()
+    const beepAt = (offsetSeconds: number) => {
+      const oscillator = ctx.createOscillator()
+      const gain = ctx.createGain()
+      oscillator.type = 'sine'
+      oscillator.frequency.value = 880
+      const start = ctx.currentTime + offsetSeconds
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(0.2, start + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2)
+      oscillator.connect(gain)
+      gain.connect(ctx.destination)
+      oscillator.start(start)
+      oscillator.stop(start + 0.22)
+    }
+    beepAt(0)
+    beepAt(0.3)
+    beepAt(0.6)
+    setTimeout(() => void ctx.close(), 1200)
+  } catch {
+    // Nothing to do — see comment above.
+  }
+}

@@ -23,6 +23,7 @@ import { emojiPickerDefinition } from './emoji-picker/definition'
 import { certificateViewerDefinition } from './certificate-viewer/definition'
 import { jwkViewerDefinition } from './jwk-viewer/definition'
 import { wcagCheckerDefinition } from './wcag-checker/definition'
+import { timerDefinition } from './timer/definition'
 
 /** Single source of truth for every widget DevDeck knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -51,6 +52,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   certificateViewerDefinition,
   jwkViewerDefinition,
   wcagCheckerDefinition,
+  timerDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
