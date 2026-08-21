@@ -40,10 +40,13 @@ const TIME_TEXT_CLASS =
 
 // Countdown ring diameter and its inner digit size, stepping in tandem
 // through the same breakpoints so the digits keep a comfortable margin
-// inside the ring at every size.
-const COUNTDOWN_RING_SIZE_CLASS = 'size-28 @xs:size-32 @sm:size-40 @md:size-48 @lg:size-56 @2xl:size-64'
+// inside the ring at every size. Two tiers taller than the clock/stopwatch
+// text scale — the ring's own container (see CountdownPanel) reclaims the
+// shell's padding, so it has the extra room to use them.
+const COUNTDOWN_RING_SIZE_CLASS =
+  'size-28 @xs:size-32 @sm:size-40 @md:size-48 @lg:size-56 @2xl:size-64 @3xl:size-72 @4xl:size-80'
 const COUNTDOWN_TEXT_CLASS =
-  'font-mono text-base @xs:text-lg @sm:text-xl @md:text-2xl @lg:text-3xl @2xl:text-4xl font-semibold tabular-nums'
+  'font-mono text-base @xs:text-lg @sm:text-xl @md:text-2xl @lg:text-3xl @2xl:text-4xl @4xl:text-5xl font-semibold tabular-nums'
 
 /** Three-in-one time widget: a live local clock, a lap-capable stopwatch,
  * and a countdown timer that alerts on completion. Sharing one widget
@@ -369,7 +372,12 @@ function CountdownPanel({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-2">
+    // `-mx-2 @container` claws back the WidgetShell's own left/right
+    // padding and opens a fresh, nested container-query context sized off
+    // that reclaimed width — the ring and its digits below key off *this*
+    // box (the nearest `@container` wins), so they scale a size tier
+    // further than they could squeezed inside the shell's padding.
+    <div className="-mx-2 flex flex-1 flex-col gap-2 @container">
       <div className="flex flex-1 flex-col items-center justify-center gap-1">
         <div className={cn('relative flex shrink-0 items-center justify-center', COUNTDOWN_RING_SIZE_CLASS)}>
           <CountdownRing remainingMs={remainingMs} durationMs={durationMs} finished={finished} />
