@@ -10,6 +10,7 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   color: 'Color',
   text: 'Text',
   network: 'Network',
+  time: 'Time',
 }
 
 /** Display order for category sections — not alphabetical, roughly
@@ -23,6 +24,7 @@ export const CATEGORY_ORDER: WidgetCategory[] = [
   'color',
   'text',
   'network',
+  'time',
 ]
 
 export interface WidgetCategoryGroup {
