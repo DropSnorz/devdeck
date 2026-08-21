@@ -163,6 +163,36 @@ describe('TimerWidget', () => {
     expect(screen.getByText('00:05.00')).toBeInTheDocument()
   })
 
+  it('does not jump the remaining time backward the instant Resume is clicked', () => {
+    // Regression test: nothing ticks while paused, so the internal "now"
+    // clock used to sit stale until the first post-resume tick — long
+    // enough for the paused clock's own gap, `endAt - staleNow`, to briefly
+    // read as *more* time remaining than was showing when Pause was
+    // clicked, i.e. the countdown visibly ran backward for one frame.
+    render(<TimerWidget instanceId="test" mode="grid" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Countdown' }))
+
+    fireEvent.change(screen.getByLabelText(/minutes/i), { target: { value: '0' } })
+    fireEvent.change(screen.getByLabelText(/seconds/i), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: /start/i }))
+
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
+    fireEvent.click(screen.getByRole('button', { name: /pause/i }))
+    expect(screen.getByText('00:06.00')).toBeInTheDocument()
+
+    // A long real-world pause — well past the last tick before Pause.
+    act(() => {
+      vi.advanceTimersByTime(8000)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /resume/i }))
+    // Must read exactly where it left off on the very next render — not
+    // above 00:06.00 (the bug) and not below it either.
+    expect(screen.getByText('00:06.00')).toBeInTheDocument()
+  })
+
   it('disables Start while the configured duration is zero', () => {
     render(<TimerWidget instanceId="test" mode="grid" />)
     fireEvent.click(screen.getByRole('button', { name: 'Countdown' }))

@@ -81,7 +81,18 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
   // sweep). A mode/segment not currently shown keeps its state (elapsed
   // time, remaining time) but stops re-rendering, which is fine: both are
   // derived from real timestamps, not from tick count, so switching back
-  // immediately shows the correct value.
+  // immediately shows the correct value — with one catch: `now` itself
+  // only advances while a tick is actually running, so it can sit stale
+  // for however long nothing needed it (paused, or a different tab
+  // showing). Reading a stale `now` is harmless for the stopwatch's
+  // "accumulated + elapsed" math (a too-small `now` just clamps to no
+  // extra elapsed time), but the countdown's "endAt − now" math has no
+  // such clamp on the low side, so a stale `now` briefly overstates the
+  // time remaining — the countdown visibly jumping backward right after
+  // Resume. Every handler below that starts a fresh running segment
+  // (Start/Resume, on either the stopwatch or the countdown, and
+  // switching back to the clock face) refreshes `now` itself rather than
+  // waiting for the next tick.
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     if (mode === 'clock') {
@@ -119,6 +130,7 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
       setSwStartedAt(null)
       setSwRunning(false)
     } else {
+      setNow(Date.now())
       setSwStartedAt(Date.now())
       setSwRunning(true)
     }
@@ -133,6 +145,7 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
 
   const handleCountdownStart = () => {
     if (countdownDurationMs <= 0) return
+    setNow(Date.now())
     setCdRemainingMs(countdownDurationMs)
     setCdEndAt(Date.now() + countdownDurationMs)
     setCdRunning(true)
@@ -145,6 +158,7 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
     setCdRunning(false)
   }
   const handleCountdownResume = () => {
+    setNow(Date.now())
     setCdEndAt(Date.now() + cdRemainingMs)
     setCdRunning(true)
   }
@@ -170,7 +184,15 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
     <div className="@container flex h-full flex-col gap-2 text-xs">
       <SegmentedControl
         value={mode}
-        onChange={setMode}
+        onChange={(nextMode) => {
+          // Same staleness the Start/Resume handlers below correct for:
+          // `now` only ticks for the section actually on screen, so
+          // switching back to the clock face after a while elsewhere would
+          // otherwise flash whatever stale value `now` last held until the
+          // next 1s tick caught it up.
+          setNow(Date.now())
+          setMode(nextMode)
+        }}
         className="self-start"
         options={[
           { label: 'Clock', value: 'clock' },
