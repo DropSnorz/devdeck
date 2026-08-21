@@ -18,7 +18,7 @@ describe('contrastRatio', () => {
     expect(contrastRatio(colord('#3b82f6'), colord('#3b82f6'))).toBeCloseTo(1, 5)
   })
 
-  it('does not depend on argument order', () => {
+  it('does not depend on argument order, for two opaque colors', () => {
     const a = colord('#336699')
     const b = colord('#f5f5f5')
     expect(contrastRatio(a, b)).toBeCloseTo(contrastRatio(b, a), 10)
@@ -27,6 +27,22 @@ describe('contrastRatio', () => {
   it('matches the well-known #767676-on-white reference (~4.54:1)', () => {
     // WebAIM's canonical "just barely passes AA normal text on white" gray.
     expect(contrastRatio(colord('#767676'), colord('#ffffff'))).toBeCloseTo(4.54, 1)
+  })
+
+  it('alpha-composites a translucent foreground over the background before measuring', () => {
+    // 50%-alpha black text on white renders as mid-grey, not opaque black —
+    // reading r/g/b straight off the input and ignoring alpha would wrongly
+    // report 21:1 (opaque black vs white) instead of the true ~3.98:1.
+    const ratio = contrastRatio(colord('rgba(0, 0, 0, 0.5)'), colord('#ffffff'))
+    expect(ratio).toBeCloseTo(3.98, 1)
+    expect(ratio).not.toBeCloseTo(21, 0)
+  })
+
+  it('alpha-composites a translucent background over white before measuring', () => {
+    // 50%-alpha red flattened over the assumed white page backdrop lands at
+    // #ff8080-ish; opaque black text against that resolved background.
+    const ratio = contrastRatio(colord('#000000'), colord('rgba(255, 0, 0, 0.5)'))
+    expect(ratio).toBeCloseTo(8.62, 1)
   })
 })
 

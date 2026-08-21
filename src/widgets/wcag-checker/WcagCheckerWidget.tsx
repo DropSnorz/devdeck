@@ -101,8 +101,15 @@ export default function WcagCheckerWidget({ instanceId }: WidgetProps) {
                 : 'bg-destructive/10 text-destructive dark:bg-destructive/20',
             )}
           >
-            {check.pass ? <Check className="size-3.5 shrink-0" /> : <X className="size-3.5 shrink-0" />}
-            <span className="truncate">{check.label}</span>
+            {check.pass ? (
+              <Check className="size-3.5 shrink-0" aria-hidden="true" />
+            ) : (
+              <X className="size-3.5 shrink-0" aria-hidden="true" />
+            )}
+            <span className="truncate">
+              <span className="sr-only">{check.pass ? 'Pass: ' : 'Fail: '}</span>
+              {check.label}
+            </span>
           </div>
         ))}
       </div>

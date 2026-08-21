@@ -18,6 +18,9 @@ describe('WcagCheckerWidget', () => {
     expect(backgroundField()).toHaveValue('#ffffff')
     expect(screen.getByText('21.00:1')).toBeInTheDocument()
     expect(screen.getAllByText(/^(AA|AAA|UI components)/)).toHaveLength(5)
+    // Pass/fail is conveyed by more than color/icon alone — a visually
+    // hidden "Pass:"/"Fail:" precedes each label for screen readers.
+    expect(screen.getAllByText('Pass:', { exact: false })).toHaveLength(5)
   })
 
   it('recomputes the ratio and pass/fail state when a hex value changes', async () => {
@@ -30,6 +33,23 @@ describe('WcagCheckerWidget', () => {
     expect(screen.getByText('4.54:1')).toBeInTheDocument()
     expect(screen.getByText('AA — normal text').parentElement).toHaveClass('text-success')
     expect(screen.getByText('AAA — normal text').parentElement).toHaveClass('text-destructive')
+    // Only the AAA/normal-text criterion fails at 4.54:1.
+    expect(screen.getAllByText('Fail:', { exact: false })).toHaveLength(1)
+  })
+
+  it('does not let a translucent color report a falsely high ratio', async () => {
+    const user = userEvent.setup()
+    render(<WcagCheckerWidget instanceId="test" mode="grid" />)
+
+    await user.clear(textField())
+    await user.type(textField(), 'rgba(0, 0, 0, 0.5)')
+
+    // Reading r/g/b straight off the input and ignoring alpha would wrongly
+    // report 21.00:1 (opaque black vs white); alpha-compositing over the
+    // white background instead lands around 3.95:1 (colord rounds the
+    // composited channels to the nearest 8-bit value).
+    expect(screen.getByText('3.95:1')).toBeInTheDocument()
+    expect(screen.queryByText('21.00:1')).not.toBeInTheDocument()
   })
 
   it('swaps text and background colors', async () => {
