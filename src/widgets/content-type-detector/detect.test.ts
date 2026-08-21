@@ -114,4 +114,98 @@ describe('buildChains', () => {
     const chains = buildChains('////////')
     expect(chains.every((c) => !labels(c).includes('Base64'))).toBe(true)
   })
+
+  it('decodes Base32 down to plain text', () => {
+    // RFC 4648 Base32 of "hello world".
+    const chains = buildChains('NBSWY3DPEB3W64TMMQ======')
+    const chain = chains.find((c) => labels(c)[0] === 'Base32')
+    expect(chain).toBeDefined()
+    expect(chain![1].value).toBe('hello world')
+  })
+
+  it('offers an opaque-secret reading for Base32 that decodes to binary', () => {
+    const chains = buildChains('32W353YBAIBQIBIGA4EASEARCIJRIFIW')
+    expect(chains.some((c) => labels(c)[0] === 'Base32 (e.g. a TOTP secret)')).toBe(true)
+  })
+
+  it('does not mistake an ordinary word for Base32 just for fitting its alphabet', () => {
+    // All-letters, no digit 2-7 — same trap as "helloworld" fitting Base32's
+    // A-Z2-7 alphabet by coincidence.
+    const chains = buildChains(btoa('helloworld'))
+    const chain = chains.find((c) => labels(c)[0] === 'Base64')
+    expect(chain).toBeDefined()
+    expect(labels(chain!)).toEqual(['Base64', 'Plain text'])
+  })
+
+  it('decodes Base58 down to plain text', () => {
+    const chains = buildChains('5L9GKndxjFYsHbGcjq7wTBJCK')
+    const chain = chains.find((c) => labels(c)[0] === 'Base58')
+    expect(chain).toBeDefined()
+    expect(chain![1].value).toBe('hello base58 world')
+  })
+
+  it('offers a crypto-address reading for Base58 in address-length range', () => {
+    const chains = buildChains('1DYwPTpZuLjY18qGUx3bnXcwvb5aos6LRh')
+    expect(chains.some((c) => labels(c)[0].startsWith('Base58 ('))).toBe(true)
+  })
+
+  it('recognizes gzip-compressed bytes wrapped in Base64 or hex, without decompressing', () => {
+    const gzipBytes = [0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01, 0x02, 0x03, 0x04]
+    const asBase64 = btoa(String.fromCharCode(...gzipBytes))
+    const asHex = gzipBytes.map((b) => b.toString(16).padStart(2, '0')).join('')
+
+    expect(buildChains(asBase64).some((c) => labels(c)[0].includes('Gzip-compressed data'))).toBe(true)
+    expect(buildChains(asHex).some((c) => labels(c)[0].includes('Gzip-compressed data'))).toBe(true)
+  })
+
+  it('detects an IPv6 address, full and compressed', () => {
+    expect(labels(buildChains('2001:0db8:85a3:0000:0000:8a2e:0370:7334')[0])).toEqual(['IPv6 address'])
+    expect(labels(buildChains('::1')[0])).toEqual(['IPv6 address'])
+  })
+
+  it('detects a MAC address', () => {
+    expect(labels(buildChains('00:1A:2B:3C:4D:5E')[0])).toEqual(['MAC address'])
+  })
+
+  it('detects a bcrypt hash', () => {
+    const hash = `$2b$12$${'N'.repeat(53)}`
+    expect(labels(buildChains(hash)[0])).toEqual(['bcrypt hash'])
+  })
+
+  it('detects an argon2 hash', () => {
+    const hash = '$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$aGFzaHZhbHVl'
+    expect(labels(buildChains(hash)[0])).toEqual(['Argon2 hash'])
+  })
+
+  it('detects an md5crypt hash', () => {
+    const hash = `$1$abcdefgh$${'N'.repeat(22)}`
+    expect(labels(buildChains(hash)[0])).toEqual(['md5crypt hash'])
+  })
+
+  it('detects a ULID and decodes its embedded timestamp', () => {
+    const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+    const ms = Date.UTC(2024, 0, 1)
+    let time = ''
+    let remaining = ms
+    for (let i = 0; i < 10; i++) {
+      time = alphabet[remaining % 32] + time
+      remaining = Math.floor(remaining / 32)
+    }
+    const ulid = time + '0'.repeat(16)
+
+    const chains = buildChains(ulid)
+    const chain = chains.find((c) => c[0].type === 'ulid')
+    expect(chain).toBeDefined()
+    expect(chain![0].label).toContain(new Date(ms).toISOString())
+  })
+
+  it('labels a JSON Web Key distinctly from generic JSON', () => {
+    const jwk = JSON.stringify({ kty: 'RSA', n: 'abc', e: 'AQAB' })
+    expect(labels(buildChains(jwk)[0])).toEqual(['JWK (JSON Web Key)'])
+  })
+
+  it('detects a PEM block', () => {
+    const pem = '-----BEGIN CERTIFICATE-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\n-----END CERTIFICATE-----'
+    expect(labels(buildChains(pem)[0])).toEqual(['PEM (CERTIFICATE)'])
+  })
 })

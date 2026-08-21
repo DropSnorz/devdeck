@@ -73,17 +73,29 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes
 }
 
-/** Decodes standard Base64 or Base64URL, tolerating missing padding.
- * Returns null for anything that isn't validly-shaped Base64, or whose
- * bytes aren't valid UTF-8 (rules out most raw-binary false positives). */
-function decodeBase64Flexible(text: string): string | null {
+/** Decodes standard Base64 or Base64URL to raw bytes, tolerating missing
+ * padding. Returns null for anything that isn't validly-shaped Base64 —
+ * says nothing about what the bytes contain, unlike the old
+ * text-decoding version this replaces, so callers can inspect the bytes
+ * themselves (e.g. for a gzip magic number) before assuming they're text. */
+function decodeBase64Bytes(text: string): Uint8Array | null {
   if (text.length < 4 || !/^[A-Za-z0-9+/_-]+={0,2}$/.test(text)) return null
   const normalized = text.replace(/-/g, '+').replace(/_/g, '/')
   const padLength = (4 - (normalized.length % 4)) % 4
   if (padLength === 3) return null // not a valid base64 length
   try {
     const binary = atob(normalized + '='.repeat(padLength))
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    return Uint8Array.from(binary, (char) => char.charCodeAt(0))
+  } catch {
+    return null
+  }
+}
+
+/** Decodes bytes as UTF-8, returning null (rather than throwing) for
+ * anything that isn't valid UTF-8 — the shared "is this actually text"
+ * gate every peelable encoding uses before offering its decoded form. */
+function decodeUtf8(bytes: Uint8Array): string | null {
+  try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
   } catch {
     return null
@@ -93,13 +105,82 @@ function decodeBase64Flexible(text: string): string | null {
 function decodeJwtHeader(token: string): Record<string, unknown> | null {
   try {
     const [header] = token.split('.')
-    const json = decodeBase64Flexible(header.replace(/-/g, '+').replace(/_/g, '/'))
+    const bytes = decodeBase64Bytes(header)
+    const json = bytes && decodeUtf8(bytes)
     if (!json) return null
     const parsed = JSON.parse(json) as unknown
     return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
   } catch {
     return null
   }
+}
+
+/** Crockford's Base32 alphabet (used by ULID) — RFC 4648 Base32 minus
+ * I/L/O/U, to avoid confusion with 1/0. */
+const CROCKFORD32_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+/** RFC 4648 Base32 alphabet (TOTP secrets, DNS labels, etc). */
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+/** Bitcoin/IPFS-style Base58 alphabet — Base64's alphabet minus the
+ * visually-ambiguous 0/O/I/l. */
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+function decodeBase32Bytes(text: string): Uint8Array | null {
+  const clean = text.replace(/=+$/, '').toUpperCase()
+  if (clean.length < 2) return null
+  let bits = 0
+  let value = 0
+  const bytes: number[] = []
+  for (const char of clean) {
+    const digit = BASE32_ALPHABET.indexOf(char)
+    if (digit === -1) return null
+    value = (value << 5) | digit
+    bits += 5
+    if (bits >= 8) {
+      bytes.push((value >>> (bits - 8)) & 0xff)
+      bits -= 8
+    }
+  }
+  return Uint8Array.from(bytes)
+}
+
+function decodeBase58Bytes(text: string): Uint8Array | null {
+  if (!text) return null
+  let value = 0n
+  for (const char of text) {
+    const digit = BASE58_ALPHABET.indexOf(char)
+    if (digit === -1) return null
+    value = value * 58n + BigInt(digit)
+  }
+  const bytes: number[] = []
+  while (value > 0n) {
+    bytes.unshift(Number(value & 0xffn))
+    value >>= 8n
+  }
+  // Each leading '1' represents a leading zero byte (base58's analogue of
+  // leading zeros not collapsing away, the same way "01" isn't just "1").
+  for (const char of text) {
+    if (char !== '1') break
+    bytes.unshift(0)
+  }
+  return Uint8Array.from(bytes)
+}
+
+/** Recognizes gzip/zlib-compressed bytes by their magic number. There's no
+ * bundled inflate implementation here (no compression library is a
+ * dependency of this project, and the browser's DecompressionStream is
+ * stream/async-only, which doesn't fit this module's synchronous API) — so
+ * this identifies the format without decompressing it, same spirit as the
+ * hash-length heuristic below. */
+function detectCompression(bytes: Uint8Array): { label: string; confidence: number } | null {
+  if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    return { label: 'Gzip-compressed data', confidence: 0.9 }
+  }
+  // zlib header: first byte 0x78 is by far the most common (32K window);
+  // second byte is one of a handful of standard compression-level flags.
+  if (bytes.length >= 2 && bytes[0] === 0x78 && [0x01, 0x5e, 0x9c, 0xda].includes(bytes[1])) {
+    return { label: 'Zlib-compressed data', confidence: 0.6 }
+  }
+  return null
 }
 
 /** Returns every pattern `text` plausibly matches, most confident first.
@@ -127,19 +208,80 @@ export function detectCandidates(input: string): Candidate[] {
   }
 
   // JSON object/array (a bare string/number/bool isn't distinctive enough
-  // to call out as "JSON").
+  // to call out as "JSON"). A JWK is JSON too, but is specific enough
+  // (a "kty" member) to get its own, more informative label instead of
+  // showing up as both.
   if ((text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))) {
     try {
-      JSON.parse(text)
-      candidates.push({ type: 'json', label: 'JSON', confidence: 0.9, value: text })
+      const parsed: unknown = JSON.parse(text)
+      const isJwk = parsed !== null && typeof parsed === 'object' && 'kty' in (parsed as object)
+      candidates.push(
+        isJwk
+          ? { type: 'jwk', label: 'JWK (JSON Web Key)', confidence: 0.93, value: text }
+          : { type: 'json', label: 'JSON', confidence: 0.9, value: text },
+      )
     } catch {
       // not valid JSON
     }
   }
 
+  // PEM block (certificate, public/private key, CSR, …) — the label names
+  // the concrete kind (e.g. "PEM (CERTIFICATE)") straight from the header.
+  const pemMatch = /^-----BEGIN ([A-Z0-9 ]+)-----[\s\S]*-----END \1-----\s*$/.exec(text)
+  if (pemMatch) {
+    candidates.push({ type: 'pem', label: `PEM (${pemMatch[1]})`, confidence: 0.95, value: text })
+  }
+
   // UUID
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) {
     candidates.push({ type: 'uuid', label: 'UUID', confidence: 0.95, value: text })
+  }
+
+  // ULID — 26-char Crockford Base32, timestamp-first. Confirming the
+  // leading 10 chars decode to a plausible calendar date (like the Unix
+  // timestamp check above) is what separates this from an arbitrary
+  // 26-char string that merely fits the alphabet.
+  if (/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i.test(text)) {
+    let ms = 0
+    for (const char of text.slice(0, 10).toUpperCase()) {
+      ms = ms * 32 + CROCKFORD32_ALPHABET.indexOf(char)
+    }
+    const year = new Date(ms).getUTCFullYear()
+    if (year >= 1990 && year <= 2100) {
+      candidates.push({
+        type: 'ulid',
+        label: `ULID → ${new Date(ms).toISOString()}`,
+        confidence: 0.75,
+        value: text,
+      })
+    }
+  }
+
+  // Password hash formats identifiable by their fixed prefix — each is
+  // distinctive enough to be high-confidence on its own.
+  if (/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(text)) {
+    candidates.push({ type: 'bcrypt', label: 'bcrypt hash', confidence: 0.95, value: text })
+  }
+  if (/^\$argon2(id|i|d)\$v=\d+\$m=\d+,t=\d+,p=\d+\$/.test(text)) {
+    candidates.push({ type: 'argon2', label: 'Argon2 hash', confidence: 0.95, value: text })
+  }
+  if (/^\$1\$[./0-9A-Za-z]{1,8}\$[./0-9A-Za-z]{22}$/.test(text)) {
+    candidates.push({ type: 'md5crypt', label: 'md5crypt hash', confidence: 0.9, value: text })
+  }
+
+  // MAC address
+  if (/^([0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i.test(text)) {
+    candidates.push({ type: 'mac', label: 'MAC address', confidence: 0.9, value: text })
+  }
+
+  // IPv6 address (a widely-used comprehensive pattern covering the full
+  // range of valid shorthand forms, including embedded IPv4 and zone IDs).
+  if (
+    /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]+|::(ffff(:0{1,4})?:)?((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))$/.test(
+      text,
+    )
+  ) {
+    candidates.push({ type: 'ipv6', label: 'IPv6 address', confidence: 0.9, value: text })
   }
 
   // URL
@@ -207,12 +349,23 @@ export function detectCandidates(input: string): Candidate[] {
     })
   }
 
-  // Hex-encoded bytes, peelable when they decode to readable UTF-8 text.
+  // Hex-encoded bytes — a compressed payload is reported as a leaf (see
+  // detectCompression); otherwise it's peelable when it decodes to
+  // readable UTF-8 text.
   if (/^[0-9a-f]+$/i.test(compact) && compact.length >= 4 && compact.length % 2 === 0) {
-    try {
-      const decoded = new TextDecoder('utf-8', { fatal: true }).decode(hexToBytes(compact))
-      const ratio = printableRatio(decoded)
-      if (ratio > 0.85) {
+    const bytes = hexToBytes(compact)
+    const compression = detectCompression(bytes)
+    if (compression) {
+      candidates.push({
+        type: 'hex-compressed',
+        label: `Hex-encoded ${compression.label}`,
+        confidence: compression.confidence,
+        value: compact,
+      })
+    } else {
+      const decoded = decodeUtf8(bytes)
+      const ratio = decoded === null ? 0 : printableRatio(decoded)
+      if (decoded !== null && ratio > 0.85) {
         candidates.push({
           type: 'hex',
           label: 'Hex-encoded bytes',
@@ -221,24 +374,94 @@ export function detectCandidates(input: string): Candidate[] {
           decode: () => decoded,
         })
       }
-    } catch {
-      // not valid UTF-8 once decoded — not a useful peel
     }
   }
 
-  // Base64 / Base64URL, peelable under the same readable-UTF-8 bar as hex.
-  const base64Decoded = decodeBase64Flexible(compact)
-  if (base64Decoded !== null && base64Decoded !== compact) {
-    const ratio = printableRatio(base64Decoded)
-    if (ratio > 0.85) {
-      const urlSafe = /[-_]/.test(compact)
+  // Base64 / Base64URL — same compressed-vs-readable-text split as hex above.
+  const base64Bytes = decodeBase64Bytes(compact)
+  if (base64Bytes !== null) {
+    const urlSafe = /[-_]/.test(compact)
+    const base64Label = urlSafe ? 'Base64 (URL-safe)' : 'Base64'
+    const compression = detectCompression(base64Bytes)
+    if (compression) {
       candidates.push({
-        type: 'base64',
-        label: urlSafe ? 'Base64 (URL-safe)' : 'Base64',
-        confidence: 0.5 + 0.4 * ratio,
-        value: base64Decoded,
-        decode: () => base64Decoded,
+        type: 'base64-compressed',
+        label: `${base64Label} ${compression.label}`,
+        confidence: compression.confidence,
+        value: compact,
       })
+    } else {
+      const decoded = decodeUtf8(base64Bytes)
+      const ratio = decoded === null ? 0 : printableRatio(decoded)
+      if (decoded !== null && decoded !== compact && ratio > 0.85) {
+        candidates.push({
+          type: 'base64',
+          label: base64Label,
+          confidence: 0.5 + 0.4 * ratio,
+          value: decoded,
+          decode: () => decoded,
+        })
+      }
+    }
+  }
+
+  // Base32 (RFC 4648) — e.g. TOTP secrets, DNS labels. Readable-text decodes
+  // peel like Base64/hex above; an unreadable decode is still offered as a
+  // low-confidence "opaque secret" leaf, since most real Base32 payloads
+  // (TOTP keys in particular) are raw bytes, not text. Base32's alphabet is
+  // literally the full A-Z alongside 2-7, so — unlike hex or Base64 — a
+  // plain lowercase word like "helloworld" fits it too; requiring at least
+  // one of the digits is what keeps ordinary text from matching, since a
+  // random Base32 string of any real length almost always contains one.
+  if (/^[A-Z2-7]{8,}=*$/i.test(compact) && /[2-7]/.test(compact)) {
+    const bytes = decodeBase32Bytes(compact)
+    if (bytes && bytes.length > 0) {
+      const decoded = decodeUtf8(bytes)
+      const ratio = decoded === null ? 0 : printableRatio(decoded)
+      if (decoded !== null && ratio > 0.85) {
+        candidates.push({
+          type: 'base32',
+          label: 'Base32',
+          confidence: 0.4 + 0.3 * ratio,
+          value: decoded,
+          decode: () => decoded,
+        })
+      } else {
+        candidates.push({
+          type: 'base32-opaque',
+          label: 'Base32 (e.g. a TOTP secret)',
+          confidence: 0.3,
+          value: compact,
+        })
+      }
+    }
+  }
+
+  // Base58 (Bitcoin/IPFS-style) — real addresses/CIDs decode to raw bytes
+  // (a hash plus checksum), not text, so — like Base32 above — an
+  // unreadable decode is still worth surfacing, gated by the length real
+  // addresses/CIDs actually fall in to keep it from firing on short words.
+  if (/^[1-9A-HJ-NP-Za-km-z]{16,}$/.test(compact)) {
+    const bytes = decodeBase58Bytes(compact)
+    if (bytes && bytes.length > 0) {
+      const decoded = decodeUtf8(bytes)
+      const ratio = decoded === null ? 0 : printableRatio(decoded)
+      if (decoded !== null && ratio > 0.85) {
+        candidates.push({
+          type: 'base58',
+          label: 'Base58',
+          confidence: 0.4 + 0.3 * ratio,
+          value: decoded,
+          decode: () => decoded,
+        })
+      } else if (compact.length >= 25 && compact.length <= 44) {
+        candidates.push({
+          type: 'base58-opaque',
+          label: 'Base58 (e.g. a Bitcoin address or IPFS CID)',
+          confidence: 0.35,
+          value: compact,
+        })
+      }
     }
   }
 

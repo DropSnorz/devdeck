@@ -28,4 +28,13 @@ describe('ContentTypeDetectorWidget', () => {
     expect(screen.getByText('Base64')).toBeInTheDocument()
     expect(screen.getByText('JSON')).toBeInTheDocument()
   })
+
+  it('identifies a v2 addition, e.g. a MAC address', async () => {
+    const user = userEvent.setup()
+    render(<ContentTypeDetectorWidget instanceId="test" mode="grid" />)
+
+    await user.type(screen.getByPlaceholderText(/paste text to identify/i), '00:1A:2B:3C:4D:5E')
+
+    expect(screen.getByText('MAC address')).toBeInTheDocument()
+  })
 })
