@@ -30,6 +30,21 @@ const COUNTDOWN_PRESETS: { label: string; hours: number; minutes: number; second
 
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
 
+// Shared by the clock and stopwatch's single-line digit display. Steps up
+// through Tailwind's container-query breakpoints (of the `@container` on
+// the widget root) as the widget's own rendered width grows — a small grid
+// cell stays legible, and the much wider fullscreen overlay gets a display
+// that actually fills it instead of floating tiny in the middle.
+const TIME_TEXT_CLASS =
+  'font-mono text-2xl @xs:text-3xl @sm:text-4xl @md:text-5xl @lg:text-6xl @2xl:text-7xl font-semibold tabular-nums'
+
+// Countdown ring diameter and its inner digit size, stepping in tandem
+// through the same breakpoints so the digits keep a comfortable margin
+// inside the ring at every size.
+const COUNTDOWN_RING_SIZE_CLASS = 'size-28 @xs:size-32 @sm:size-40 @md:size-48 @lg:size-56 @2xl:size-64'
+const COUNTDOWN_TEXT_CLASS =
+  'font-mono text-base @xs:text-lg @sm:text-xl @md:text-2xl @lg:text-3xl @2xl:text-4xl font-semibold tabular-nums'
+
 /** Three-in-one time widget: a live local clock, a lap-capable stopwatch,
  * and a countdown timer that alerts on completion. Sharing one widget
  * (rather than three) keeps the tool browser from getting cluttered with
@@ -144,7 +159,12 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-2 text-xs">
+    // `@container` turns the widget's own box into a container-query
+    // context, so the big digit displays below can scale off *this*
+    // element's actual rendered width — a resized grid cell, a narrow
+    // sidebar tool, or the much larger fullscreen overlay all just work,
+    // with no need to special-case `mode`.
+    <div className="@container flex h-full flex-col gap-2 text-xs">
       <SegmentedControl
         value={mode}
         onChange={setMode}
@@ -197,9 +217,9 @@ function ClockPanel({ now }: { now: number }) {
   const date = new Date(now)
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-1">
-      <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">{formatClockTime(date)}</span>
-      <span className="text-muted-foreground">{formatClockDate(date)}</span>
-      <span className="text-[11px] text-muted-foreground">{TIME_ZONE}</span>
+      <span className={cn(TIME_TEXT_CLASS, 'text-foreground')}>{formatClockTime(date)}</span>
+      <span className="text-muted-foreground @sm:text-sm @lg:text-base">{formatClockDate(date)}</span>
+      <span className="text-[11px] text-muted-foreground @sm:text-xs @lg:text-sm">{TIME_ZONE}</span>
     </div>
   )
 }
@@ -222,9 +242,7 @@ function StopwatchPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex flex-1 flex-col items-center justify-center gap-1">
-        <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
-          {formatDurationTime(elapsedMs)}
-        </span>
+        <span className={cn(TIME_TEXT_CLASS, 'text-foreground')}>{formatDurationTime(elapsedMs)}</span>
       </div>
 
       <div className="flex justify-center gap-1.5">
@@ -353,14 +371,9 @@ function CountdownPanel({
   return (
     <div className="flex flex-1 flex-col gap-2">
       <div className="flex flex-1 flex-col items-center justify-center gap-1">
-        <div className="relative flex size-32 shrink-0 items-center justify-center">
+        <div className={cn('relative flex shrink-0 items-center justify-center', COUNTDOWN_RING_SIZE_CLASS)}>
           <CountdownRing remainingMs={remainingMs} durationMs={durationMs} finished={finished} />
-          <span
-            className={cn(
-              'font-mono text-lg font-semibold tabular-nums',
-              finished ? 'text-destructive' : 'text-foreground',
-            )}
-          >
+          <span className={cn(COUNTDOWN_TEXT_CLASS, finished ? 'text-destructive' : 'text-foreground')}>
             {formatDurationTime(remainingMs)}
           </span>
         </div>
