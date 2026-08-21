@@ -3,11 +3,12 @@ import {
   clampPart,
   computeCountdownRemainingMs,
   computeStopwatchElapsedMs,
+  COUNTDOWN_RING_CIRCUMFERENCE,
+  countdownRingOffset,
   durationFromParts,
   formatClockDate,
   formatClockTime,
-  formatCountdownTime,
-  formatStopwatchTime,
+  formatDurationTime,
 } from './timer'
 
 describe('formatClockTime', () => {
@@ -28,39 +29,19 @@ describe('formatClockDate', () => {
   })
 })
 
-describe('formatStopwatchTime', () => {
+describe('formatDurationTime', () => {
   it('formats sub-minute durations as mm:ss.cc', () => {
-    expect(formatStopwatchTime(0)).toBe('00:00.00')
-    expect(formatStopwatchTime(1234)).toBe('00:01.23')
-    expect(formatStopwatchTime(65_430)).toBe('01:05.43')
+    expect(formatDurationTime(0)).toBe('00:00.00')
+    expect(formatDurationTime(1234)).toBe('00:01.23')
+    expect(formatDurationTime(65_430)).toBe('01:05.43')
   })
 
   it('expands to h:mm:ss.cc past one hour', () => {
-    expect(formatStopwatchTime(3_661_500)).toBe('1:01:01.50')
+    expect(formatDurationTime(3_661_500)).toBe('1:01:01.50')
   })
 
   it('clamps negative durations to zero', () => {
-    expect(formatStopwatchTime(-500)).toBe('00:00.00')
-  })
-})
-
-describe('formatCountdownTime', () => {
-  it('formats sub-hour durations as mm:ss', () => {
-    expect(formatCountdownTime(0)).toBe('00:00')
-    expect(formatCountdownTime(59_000)).toBe('00:59')
-    expect(formatCountdownTime(65_000)).toBe('01:05')
-  })
-
-  it('expands to h:mm:ss past one hour', () => {
-    expect(formatCountdownTime(3_661_000)).toBe('1:01:01')
-  })
-
-  it('rounds up to the next second so the final second reads as 1 rather than 0', () => {
-    expect(formatCountdownTime(200)).toBe('00:01')
-  })
-
-  it('clamps negative durations to zero', () => {
-    expect(formatCountdownTime(-500)).toBe('00:00')
+    expect(formatDurationTime(-500)).toBe('00:00.00')
   })
 })
 
@@ -111,5 +92,29 @@ describe('computeCountdownRemainingMs', () => {
 
   it('clamps to zero once endAt has passed', () => {
     expect(computeCountdownRemainingMs({ running: true, endAt: 10_000, remainingMs: 3000 }, 15_000)).toBe(0)
+  })
+})
+
+describe('countdownRingOffset', () => {
+  it('is 0 (a full ring) at the start of the countdown', () => {
+    expect(countdownRingOffset(10_000, 10_000)).toBe(0)
+  })
+
+  it('is the full circumference (an empty ring) once time runs out', () => {
+    expect(countdownRingOffset(0, 10_000)).toBe(COUNTDOWN_RING_CIRCUMFERENCE)
+  })
+
+  it('is proportional to time remaining in between', () => {
+    expect(countdownRingOffset(2500, 10_000)).toBeCloseTo(COUNTDOWN_RING_CIRCUMFERENCE * 0.75)
+  })
+
+  it('clamps remaining time outside [0, durationMs] into a full or empty ring', () => {
+    expect(countdownRingOffset(15_000, 10_000)).toBe(0)
+    expect(countdownRingOffset(-500, 10_000)).toBe(COUNTDOWN_RING_CIRCUMFERENCE)
+  })
+
+  it('reads a non-positive duration as already complete rather than dividing by zero', () => {
+    expect(countdownRingOffset(0, 0)).toBe(COUNTDOWN_RING_CIRCUMFERENCE)
+    expect(Number.isFinite(countdownRingOffset(0, 0))).toBe(true)
   })
 })

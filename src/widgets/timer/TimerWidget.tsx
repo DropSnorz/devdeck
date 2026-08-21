@@ -11,11 +11,13 @@ import type { WidgetProps } from '@/widgets/types'
 import {
   clampPart,
   computeStopwatchElapsedMs,
+  COUNTDOWN_RING_CIRCUMFERENCE,
+  COUNTDOWN_RING_RADIUS,
+  countdownRingOffset,
   durationFromParts,
   formatClockDate,
   formatClockTime,
-  formatCountdownTime,
-  formatStopwatchTime,
+  formatDurationTime,
   type TimerMode,
 } from './timer'
 
@@ -56,12 +58,12 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
   useWidgetDirty(instanceId, swRunning || swAccumulatedMs > 0 || swLaps.length > 0 || cdStarted)
 
   // Ticks the shared clock while whichever section is actually visible
-  // needs live updates — the clock face once a second, the stopwatch every
-  // 100ms for smooth centiseconds, the countdown once a second (it only
-  // displays whole seconds). A mode/segment not currently shown keeps its
-  // state (elapsed time, remaining time) but stops re-rendering, which is
-  // fine: both are derived from real timestamps, not from tick count, so
-  // switching back immediately shows the correct value.
+  // needs live updates — the clock face once a second, the stopwatch and
+  // the countdown every 100ms for smooth centiseconds (and a smooth ring
+  // sweep). A mode/segment not currently shown keeps its state (elapsed
+  // time, remaining time) but stops re-rendering, which is fine: both are
+  // derived from real timestamps, not from tick count, so switching back
+  // immediately shows the correct value.
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     if (mode === 'clock') {
@@ -73,7 +75,7 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
       return () => clearInterval(id)
     }
     if (mode === 'countdown' && cdRunning) {
-      const id = setInterval(() => setNow(Date.now()), 1000)
+      const id = setInterval(() => setNow(Date.now()), 100)
       return () => clearInterval(id)
     }
   }, [mode, swRunning, cdRunning])
@@ -221,7 +223,7 @@ function StopwatchPanel({
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex flex-1 flex-col items-center justify-center gap-1">
         <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
-          {formatStopwatchTime(elapsedMs)}
+          {formatDurationTime(elapsedMs)}
         </span>
       </div>
 
@@ -269,8 +271,8 @@ function StopwatchPanel({
                 )}
               >
                 <span className="shrink-0 text-muted-foreground">Lap {lapNumber}</span>
-                <span className="text-foreground">{formatStopwatchTime(splitMs)}</span>
-                <span className="shrink-0 text-muted-foreground">{formatStopwatchTime(lapMs)}</span>
+                <span className="text-foreground">{formatDurationTime(splitMs)}</span>
+                <span className="shrink-0 text-muted-foreground">{formatDurationTime(lapMs)}</span>
               </div>
             )
           })}
@@ -351,14 +353,17 @@ function CountdownPanel({
   return (
     <div className="flex flex-1 flex-col gap-2">
       <div className="flex flex-1 flex-col items-center justify-center gap-1">
-        <span
-          className={cn(
-            'font-mono text-3xl font-semibold tabular-nums',
-            finished ? 'text-destructive' : 'text-foreground',
-          )}
-        >
-          {formatCountdownTime(remainingMs)}
-        </span>
+        <div className="relative flex size-32 shrink-0 items-center justify-center">
+          <CountdownRing remainingMs={remainingMs} durationMs={durationMs} finished={finished} />
+          <span
+            className={cn(
+              'font-mono text-lg font-semibold tabular-nums',
+              finished ? 'text-destructive' : 'text-foreground',
+            )}
+          >
+            {formatDurationTime(remainingMs)}
+          </span>
+        </div>
         {finished && <span className="font-medium text-destructive">Time&apos;s up!</span>}
       </div>
 
@@ -382,6 +387,44 @@ function CountdownPanel({
         </Button>
       </div>
     </div>
+  )
+}
+
+/** Ring that sweeps from full to empty as the countdown runs down, landing
+ * on a fully-depleted ring exactly when `remainingMs` hits zero — the same
+ * geometry a physical kitchen timer's dial traces. Purely decorative (the
+ * digits underneath already state the exact time), so hidden from
+ * assistive tech; a CSS transition smooths the motion between the 100ms
+ * ticks driving `remainingMs`, the same trick CronWidget's trigger
+ * progress bars use for their once-a-second updates. */
+function CountdownRing({
+  remainingMs,
+  durationMs,
+  finished,
+}: {
+  remainingMs: number
+  durationMs: number
+  finished: boolean
+}) {
+  const offset = countdownRingOffset(remainingMs, durationMs)
+  return (
+    <svg viewBox="0 0 120 120" className="absolute inset-0 size-full -rotate-90" aria-hidden="true">
+      <circle cx="60" cy="60" r={COUNTDOWN_RING_RADIUS} fill="none" strokeWidth="8" className="stroke-muted" />
+      <circle
+        cx="60"
+        cy="60"
+        r={COUNTDOWN_RING_RADIUS}
+        fill="none"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={COUNTDOWN_RING_CIRCUMFERENCE}
+        strokeDashoffset={offset}
+        className={cn(
+          'transition-[stroke-dashoffset] duration-100 ease-linear motion-reduce:transition-none',
+          finished ? 'stroke-destructive' : 'stroke-primary',
+        )}
+      />
+    </svg>
   )
 }
 

@@ -98,18 +98,42 @@ describe('TimerWidget', () => {
     fireEvent.change(screen.getByLabelText(/seconds/i), { target: { value: '3' } })
     fireEvent.click(screen.getByRole('button', { name: /start/i }))
 
-    expect(screen.getByText('00:03')).toBeInTheDocument()
+    expect(screen.getByText('00:03.00')).toBeInTheDocument()
 
     act(() => {
       vi.advanceTimersByTime(1000)
     })
-    expect(screen.getByText('00:02')).toBeInTheDocument()
+    expect(screen.getByText('00:02.00')).toBeInTheDocument()
 
     act(() => {
       vi.advanceTimersByTime(2000)
     })
-    expect(screen.getByText('00:00')).toBeInTheDocument()
+    expect(screen.getByText('00:00.00')).toBeInTheDocument()
     expect(screen.getByText(/time's up/i)).toBeInTheDocument()
+  })
+
+  it('draws the progress ring sweeping from full to empty as the countdown runs', () => {
+    const { container } = render(<TimerWidget instanceId="test" mode="grid" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Countdown' }))
+
+    fireEvent.change(screen.getByLabelText(/minutes/i), { target: { value: '0' } })
+    fireEvent.change(screen.getByLabelText(/seconds/i), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: /start/i }))
+
+    const progressRing = container.querySelectorAll('circle')[1]
+    expect(progressRing).toHaveAttribute('stroke-dashoffset', '0')
+
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    // Half the duration has elapsed, so the ring is half depleted.
+    const circumference = 2 * Math.PI * 54
+    expect(Number(progressRing.getAttribute('stroke-dashoffset'))).toBeCloseTo(circumference / 2)
+
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    expect(Number(progressRing.getAttribute('stroke-dashoffset'))).toBeCloseTo(circumference)
   })
 
   it('pauses and resumes the countdown without losing remaining time', () => {
@@ -124,19 +148,19 @@ describe('TimerWidget', () => {
       vi.advanceTimersByTime(4000)
     })
     fireEvent.click(screen.getByRole('button', { name: /pause/i }))
-    expect(screen.getByText('00:06')).toBeInTheDocument()
+    expect(screen.getByText('00:06.00')).toBeInTheDocument()
 
     act(() => {
       vi.advanceTimersByTime(5000)
     })
     // Still paused, so remaining time hasn't moved.
-    expect(screen.getByText('00:06')).toBeInTheDocument()
+    expect(screen.getByText('00:06.00')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /resume/i }))
     act(() => {
       vi.advanceTimersByTime(1000)
     })
-    expect(screen.getByText('00:05')).toBeInTheDocument()
+    expect(screen.getByText('00:05.00')).toBeInTheDocument()
   })
 
   it('disables Start while the configured duration is zero', () => {

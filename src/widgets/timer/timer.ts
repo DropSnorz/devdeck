@@ -34,8 +34,9 @@ export function formatClockDate(date: Date): string {
 }
 
 /** `mm:ss.cc`, expanding to `h:mm:ss.cc` past one hour — centisecond
- * precision reads naturally for a running/paused stopwatch. */
-export function formatStopwatchTime(ms: number): string {
+ * precision reads naturally for both a running/paused stopwatch and a
+ * counting-down countdown, so both share this one formatter. */
+export function formatDurationTime(ms: number): string {
   const clamped = Math.max(0, Math.round(ms))
   const centiseconds = Math.floor(clamped / 10) % 100
   const totalSeconds = Math.floor(clamped / 1000)
@@ -46,18 +47,6 @@ export function formatStopwatchTime(ms: number): string {
   return hours > 0
     ? `${hours}:${pad2(minutes)}:${pad2(seconds)}.${pad2(centiseconds)}`
     : `${pad2(minutes)}:${pad2(seconds)}.${pad2(centiseconds)}`
-}
-
-/** `mm:ss`, expanding to `h:mm:ss` past one hour. Rounds up to the next
- * second (`ceil`) rather than truncating, so a countdown reads "1:00" for
- * the entire final second instead of jumping straight to "0:59". */
-export function formatCountdownTime(ms: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const hours = Math.floor(totalMinutes / 60)
-  return hours > 0 ? `${hours}:${pad2(minutes)}:${pad2(seconds)}` : `${pad2(minutes)}:${pad2(seconds)}`
 }
 
 export function durationFromParts(hours: number, minutes: number, seconds: number): number {
@@ -89,4 +78,21 @@ export function computeCountdownRemainingMs(
 ): number {
   if (!state.running || state.endAt === null) return state.remainingMs
   return Math.max(0, state.endAt - now)
+}
+
+/** Radius (SVG user units) of the countdown's progress ring — shared
+ * between the geometry here and the `<circle r>` CountdownRing actually
+ * draws with, so the two never drift apart. */
+export const COUNTDOWN_RING_RADIUS = 54
+export const COUNTDOWN_RING_CIRCUMFERENCE = 2 * Math.PI * COUNTDOWN_RING_RADIUS
+
+/** `stroke-dashoffset` for the countdown ring: a full ring (offset 0) at
+ * the start of the countdown, depleting clockwise down to an empty ring
+ * (offset = circumference) exactly as `remainingMs` reaches zero. A
+ * zero/negative `durationMs` reads as already complete (empty ring) rather
+ * than dividing by zero. */
+export function countdownRingOffset(remainingMs: number, durationMs: number): number {
+  if (durationMs <= 0) return COUNTDOWN_RING_CIRCUMFERENCE
+  const progress = Math.min(1, Math.max(0, remainingMs / durationMs))
+  return COUNTDOWN_RING_CIRCUMFERENCE * (1 - progress)
 }
