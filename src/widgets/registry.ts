@@ -22,6 +22,7 @@ import { passwordGeneratorDefinition } from './password-generator/definition'
 import { emojiPickerDefinition } from './emoji-picker/definition'
 import { certificateViewerDefinition } from './certificate-viewer/definition'
 import { jwkViewerDefinition } from './jwk-viewer/definition'
+import { wcagCheckerDefinition } from './wcag-checker/definition'
 
 /** Single source of truth for every widget DevDeck knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -49,6 +50,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   emojiPickerDefinition,
   certificateViewerDefinition,
   jwkViewerDefinition,
+  wcagCheckerDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
