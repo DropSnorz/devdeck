@@ -126,7 +126,15 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
 
   const handleStopwatchStartPause = () => {
     if (swRunning) {
-      setSwAccumulatedMs(elapsedMs)
+      // Read the current time directly rather than trusting `elapsedMs`
+      // (derived from the `now` state, itself only as fresh as the last
+      // 100ms tick) — otherwise pausing can lose up to a tick's worth of
+      // centiseconds off the accumulated total.
+      const stoppedAt = Date.now()
+      setNow(stoppedAt)
+      setSwAccumulatedMs(
+        computeStopwatchElapsedMs({ accumulatedMs: swAccumulatedMs, startedAt: swStartedAt }, stoppedAt),
+      )
       setSwStartedAt(null)
       setSwRunning(false)
     } else {
@@ -135,7 +143,14 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
       setSwRunning(true)
     }
   }
-  const handleStopwatchLap = () => setSwLaps((prev) => [elapsedMs, ...prev])
+  const handleStopwatchLap = () => {
+    // Same freshness concern as pausing above — a lap should record the
+    // time at the click, not whatever `now` last ticked to.
+    const lappedAt = Date.now()
+    setNow(lappedAt)
+    const lapMs = computeStopwatchElapsedMs({ accumulatedMs: swAccumulatedMs, startedAt: swStartedAt }, lappedAt)
+    setSwLaps((prev) => [lapMs, ...prev])
+  }
   const handleStopwatchReset = () => {
     setSwRunning(false)
     setSwStartedAt(null)

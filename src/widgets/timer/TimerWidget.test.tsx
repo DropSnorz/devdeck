@@ -51,6 +51,29 @@ describe('TimerWidget', () => {
     expect(screen.getByText('00:02.50')).toBeInTheDocument()
   })
 
+  it('does not drop a partial tick of elapsed time when pausing or lapping', () => {
+    // Regression test: the stopwatch only re-renders every 100ms, so a
+    // click landing between ticks used to read the *previous* tick's
+    // stale `now` — losing up to a tick's worth of centiseconds off the
+    // recorded total instead of capturing the exact time of the click.
+    render(<TimerWidget instanceId="test" mode="grid" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Stopwatch' }))
+    fireEvent.click(screen.getByRole('button', { name: /start/i }))
+
+    // Lands 50ms after the last 100ms tick (which fired at 1000ms).
+    act(() => {
+      vi.advanceTimersByTime(1050)
+    })
+    fireEvent.click(screen.getByRole('button', { name: /lap/i }))
+    expect(screen.getByText('Lap 1')).toBeInTheDocument()
+    // Main display, lap split, and lap cumulative total (equal, for a
+    // first lap) all read the exact click time.
+    expect(screen.getAllByText('00:01.05')).toHaveLength(3)
+
+    fireEvent.click(screen.getByRole('button', { name: /pause/i }))
+    expect(screen.getAllByText('00:01.05')).toHaveLength(3)
+  })
+
   it('records laps with a running total and a per-lap split', () => {
     render(<TimerWidget instanceId="test" mode="grid" />)
     fireEvent.click(screen.getByRole('button', { name: 'Stopwatch' }))
