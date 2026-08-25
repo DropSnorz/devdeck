@@ -58,13 +58,18 @@ export const MergeDiffView = forwardRef<MergeDiffViewHandle, MergeDiffViewProps>
   // Read via refs inside the update listeners below rather than closed over
   // directly, so those listeners (registered once, at construction) always
   // call the latest callback without needing the merge view itself to be
-  // torn down and rebuilt whenever a prop identity changes.
+  // torn down and rebuilt whenever a prop identity changes. Mirrored in an
+  // effect rather than assigned directly in the render body — writing to a
+  // ref during render is only sanctioned for lazy initialization, not for
+  // keeping it in sync with props on every render.
   const onOriginalChangeRef = useRef(onOriginalChange)
-  onOriginalChangeRef.current = onOriginalChange
   const onChangedChangeRef = useRef(onChangedChange)
-  onChangedChangeRef.current = onChangedChange
   const onNavChangeRef = useRef(onNavChange)
-  onNavChangeRef.current = onNavChange
+  useLayoutEffect(() => {
+    onOriginalChangeRef.current = onOriginalChange
+    onChangedChangeRef.current = onChangedChange
+    onNavChangeRef.current = onNavChange
+  })
 
   const appTheme = useAppEditorTheme(isDark)
   const chunkTheme = useMergeChunkTheme()

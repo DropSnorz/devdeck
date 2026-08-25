@@ -3,6 +3,7 @@ import {
   DATA_UNITS,
   LENGTH_UNITS,
   MASS_UNITS,
+  TIME_UNITS,
   VOLUME_UNITS,
   convertLinear,
   convertTemperature,
@@ -46,6 +47,16 @@ describe('convertLinear', () => {
 
     const mib = unit(DATA_UNITS, 'MiB')
     expect(convertLinear(1, mib.toBase, b.toBase)).toBe(1_048_576)
+  })
+
+  it('converts time', () => {
+    const d = unit(TIME_UNITS, 'd')
+    const h = unit(TIME_UNITS, 'h')
+    expect(convertLinear(1, d.toBase, h.toBase)).toBeCloseTo(24)
+
+    const wk = unit(TIME_UNITS, 'wk')
+    const s = unit(TIME_UNITS, 's')
+    expect(convertLinear(1, wk.toBase, s.toBase)).toBe(604800)
   })
 
   it('is its own inverse', () => {

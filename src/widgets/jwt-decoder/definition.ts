@@ -4,12 +4,12 @@ import type { WidgetDefinition } from '@/widgets/types'
 
 export const jwtDecoderDefinition: WidgetDefinition = {
   id: 'jwt-decoder',
-  name: 'JWT Decoder',
-  description: 'Decode a JWT header and payload (signature not verified)',
-  category: 'security',
+  name: 'JWT Encoder',
+  description: 'Encode or decode a JWT — sign with HS256, or inspect a token’s header and payload',
+  category: 'encoding',
   icon: KeyRound,
-  defaultSize: { w: 4, h: 3 },
+  defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./JwtDecoderWidget')),
-  keywords: ['jwt', 'json web token', 'decode', 'auth'],
+  keywords: ['jwt', 'json web token', 'decode', 'encode', 'sign', 'hs256', 'auth'],
 }

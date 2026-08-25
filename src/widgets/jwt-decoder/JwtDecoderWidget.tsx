@@ -1,13 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/utils'
+import { SegmentedControl } from '@/components/SegmentedControl'
+import { CopyButton } from '@/components/CopyButton'
 import { ErrorMessage } from '@/components/ErrorMessage'
+import { Field } from '@/components/Field'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
+
+type Mode = 'decode' | 'encode'
+
+function base64UrlEncode(bytes: Uint8Array): string {
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
 
 function base64UrlDecode(input: string): string {
   const normalized = input.replace(/-/g, '+').replace(/_/g, '/')
@@ -37,12 +49,69 @@ function decodeJwt(token: string): DecodedJwt {
   }
 }
 
-export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
-  const [token, setToken] = useWidgetState(instanceId, 'token', '')
-  const isDark = useIsDarkTheme()
-  useWidgetDirty(instanceId, token.length > 0)
+/** JSON-stringifies and base64url-encodes both sides — the unsigned
+ * `header.payload` half of a token, shared by every alg (including
+ * "none"). */
+function encodeJwtParts(header: unknown, payload: unknown): string {
+  const headerPart = base64UrlEncode(new TextEncoder().encode(JSON.stringify(header)))
+  const payloadPart = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)))
+  return `${headerPart}.${payloadPart}`
+}
 
-  const { decoded, error } = useMemo(() => {
+/** HS256 (HMAC-SHA256) is the only signing algorithm this widget produces a
+ * real signature for — the common case for locally testing/minting tokens,
+ * and the one alg Web Crypto's `HMAC` key type covers without pulling in an
+ * asymmetric-crypto dependency for RS256/ES256 etc. */
+async function signHS256(signingInput: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signingInput))
+  return base64UrlEncode(new Uint8Array(signature))
+}
+
+interface EncodedState {
+  token: string
+  error: string | null
+  /** Whether the header's `alg` is `"HS256"` — the only alg this widget
+   * knows how to sign for. */
+  isHS256: boolean
+  /** Whether `token` actually got a real signature appended (isHS256 *and*
+   * a non-empty secret) — distinct from `isHS256` since an HS256 header
+   * with no secret yet is still unsigned, and needs its own hint wording. */
+  isSigned: boolean
+}
+
+const DEFAULT_HEADER_JSON = '{\n  "alg": "HS256",\n  "typ": "JWT"\n}'
+const DEFAULT_PAYLOAD_JSON = '{\n  "sub": "1234567890",\n  "name": "John Doe",\n  "iat": 1516239022\n}'
+const EMPTY_ENCODED: EncodedState = { token: '', error: null, isHS256: false, isSigned: false }
+
+export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
+  const [mode, setMode] = useWidgetState<Mode>(instanceId, 'mode', 'decode')
+
+  // Decode
+  const [token, setToken] = useWidgetState(instanceId, 'token', '')
+
+  // Encode
+  const [headerJson, setHeaderJson] = useWidgetState(instanceId, 'headerJson', DEFAULT_HEADER_JSON)
+  const [payloadJson, setPayloadJson] = useWidgetState(instanceId, 'payloadJson', DEFAULT_PAYLOAD_JSON)
+  const [secret, setSecret] = useWidgetState(instanceId, 'secret', '')
+  const [encoded, setEncoded] = useWidgetState<EncodedState>(instanceId, 'encoded', EMPTY_ENCODED)
+
+  const isDark = useIsDarkTheme()
+  useWidgetDirty(
+    instanceId,
+    token.length > 0 ||
+      headerJson !== DEFAULT_HEADER_JSON ||
+      payloadJson !== DEFAULT_PAYLOAD_JSON ||
+      secret.length > 0,
+  )
+
+  const { decoded, error: decodeError } = useMemo(() => {
     if (!token.trim()) return { decoded: null, error: null as string | null }
     try {
       return { decoded: decodeJwt(token), error: null }
@@ -54,41 +123,183 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
     }
   }, [token])
 
+  // Signing is async (Web Crypto), so this recomputes in an effect rather
+  // than a useMemo — same shape as HashGeneratorWidget's computeHash effect.
+  useEffect(() => {
+    if (mode !== 'encode') return
+    let cancelled = false
+    async function run() {
+      let header: unknown
+      let payload: unknown
+      try {
+        header = JSON.parse(headerJson) as unknown
+        payload = JSON.parse(payloadJson) as unknown
+      } catch (err) {
+        if (!cancelled) {
+          setEncoded({
+            token: '',
+            error: err instanceof Error ? err.message : 'Invalid JSON',
+            isHS256: false,
+            isSigned: false,
+          })
+        }
+        return
+      }
+      const alg = typeof header === 'object' && header !== null ? (header as Record<string, unknown>).alg : undefined
+      const isHS256 = alg === 'HS256'
+      const isSigned = isHS256 && !!secret
+      try {
+        const signingInput = encodeJwtParts(header, payload)
+        const signature = isSigned ? await signHS256(signingInput, secret) : ''
+        if (!cancelled) setEncoded({ token: `${signingInput}.${signature}`, error: null, isHS256, isSigned })
+      } catch (err) {
+        if (!cancelled) {
+          setEncoded({
+            token: '',
+            error: err instanceof Error ? err.message : 'Failed to sign token',
+            isHS256,
+            isSigned: false,
+          })
+        }
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, headerJson, payloadJson, secret, setEncoded])
+
   const style = isDark ? darkStyles : defaultStyles
+  const headerId = useId()
+  const payloadId = useId()
+  const secretId = useId()
 
   return (
-    <div className="flex h-full flex-col gap-2">
-      <Textarea
-        value={token}
-        onChange={(event) => setToken(event.target.value)}
-        placeholder="Paste a JWT…"
-        spellCheck={false}
-        className="h-16 w-full resize-none p-2 font-mono text-xs"
+    <div className="flex h-full flex-col gap-2 text-xs">
+      <SegmentedControl
+        value={mode}
+        onChange={setMode}
+        options={[
+          { label: 'Decode', value: 'decode' },
+          { label: 'Encode', value: 'encode' },
+        ]}
       />
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-      {decoded && (
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto text-xs">
-          {/* Keyed on the token so a freshly-decoded JWT gets a freshly
-           * captured "now" — see ExpiryBadge for why this avoids an effect. */}
-          <ExpiryBadge key={token} payload={decoded.payload} />
-          <div>
-            <p className="mb-1 font-medium text-muted-foreground">Header</p>
-            {typeof decoded.header === 'object' && decoded.header !== null ? (
-              <JsonView data={decoded.header} style={style} />
-            ) : (
-              <pre className="font-mono text-xs">
-                {JSON.stringify(decoded.header)}
-              </pre>
-            )}
-          </div>
-          <div>
-            <p className="mb-1 font-medium text-muted-foreground">Payload</p>
-            <JsonView data={decoded.payload} style={style} />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Signature not verified.
-          </p>
+
+      {mode === 'decode' ? (
+        <>
+          <Textarea
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            placeholder="Paste a JWT…"
+            spellCheck={false}
+            className="h-16 w-full resize-none p-2 font-mono text-xs"
+          />
+          {decodeError && <ErrorMessage>{decodeError}</ErrorMessage>}
+          {decoded && (
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+              {/* Keyed on the token so a freshly-decoded JWT gets a freshly
+               * captured "now" — see ExpiryBadge for why this avoids an
+               * effect. */}
+              <ExpiryBadge key={token} payload={decoded.payload} />
+              <JsonBlock
+                title="Header"
+                data={decoded.header}
+                text={JSON.stringify(decoded.header, null, 2)}
+                style={style}
+              />
+              <JsonBlock
+                title="Payload"
+                data={decoded.payload}
+                text={JSON.stringify(decoded.payload, null, 2)}
+                style={style}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Signature not verified.
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+          <Field label="Header" htmlFor={headerId}>
+            <Textarea
+              id={headerId}
+              value={headerJson}
+              onChange={(event) => setHeaderJson(event.target.value)}
+              spellCheck={false}
+              className="h-16 w-full resize-none p-2 font-mono text-xs"
+            />
+          </Field>
+          <Field label="Payload" htmlFor={payloadId}>
+            <Textarea
+              id={payloadId}
+              value={payloadJson}
+              onChange={(event) => setPayloadJson(event.target.value)}
+              spellCheck={false}
+              className="h-20 w-full resize-none p-2 font-mono text-xs"
+            />
+          </Field>
+          <Field label="Secret" htmlFor={secretId}>
+            <Input
+              id={secretId}
+              value={secret}
+              onChange={(event) => setSecret(event.target.value)}
+              placeholder="Leave blank for an unsigned token"
+              spellCheck={false}
+              className="font-mono"
+            />
+          </Field>
+
+          {encoded.error ? (
+            <ErrorMessage>{encoded.error}</ErrorMessage>
+          ) : (
+            <div className="relative mt-auto">
+              <Textarea
+                readOnly
+                value={encoded.token}
+                spellCheck={false}
+                className="h-16 w-full resize-none border-border bg-background p-2 pr-14 font-mono text-xs dark:bg-muted/40"
+              />
+              <CopyButton value={encoded.token} className="absolute right-1 top-1" />
+            </div>
+          )}
+          {!encoded.error && !encoded.isSigned && (
+            <p className="text-[11px] text-muted-foreground">
+              {encoded.isHS256
+                ? 'Provide a secret above to sign the token or left blank for unsigned.'
+                : 'Only HS256 signing is supported. Set "alg" to "HS256" above and provide a secret to sign the token.'}
+            </p>
+          )}
         </div>
+      )}
+    </div>
+  )
+}
+
+/** A JSON section with its own copy button — copies the formatted JSON text
+ * directly, independent of whatever the tree view happens to have
+ * collapsed. */
+function JsonBlock({
+  title,
+  data,
+  text,
+  style,
+}: {
+  title: string
+  data: unknown
+  text: string
+  style: typeof defaultStyles
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <p className="font-medium text-muted-foreground">{title}</p>
+        <CopyButton value={text} label="" ariaLabel={`Copy ${title.toLowerCase()}`} />
+      </div>
+      {typeof data === 'object' && data !== null ? (
+        <JsonView data={data} style={style} />
+      ) : (
+        <pre className="font-mono text-xs">{JSON.stringify(data)}</pre>
       )}
     </div>
   )

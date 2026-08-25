@@ -21,11 +21,11 @@ describe('PasswordGeneratorWidget', () => {
     expect(getOutput()).toHaveValue('')
   })
 
-  it('generates a 16-character password by default once Regenerate is clicked', async () => {
+  it('generates a 16-character password by default once Generate is clicked', async () => {
     const user = userEvent.setup()
     render(<PasswordGeneratorWidget instanceId="test" mode="grid" />)
 
-    await user.click(screen.getByRole('button', { name: /regenerate/i }))
+    await user.click(screen.getByRole('button', { name: /generate/i }))
 
     expect(getOutput().value).toHaveLength(16)
   })
@@ -35,12 +35,12 @@ describe('PasswordGeneratorWidget', () => {
     render(<PasswordGeneratorWidget instanceId="test" mode="grid" />)
 
     setLength('32')
-    await user.click(screen.getByRole('button', { name: /regenerate/i }))
+    await user.click(screen.getByRole('button', { name: /generate/i }))
 
     expect(getOutput().value).toHaveLength(32)
   })
 
-  it('disables Regenerate and shows an error once every character set is turned off', async () => {
+  it('disables Generate and shows an error once every character set is turned off', async () => {
     const user = userEvent.setup()
     render(<PasswordGeneratorWidget instanceId="test" mode="grid" />)
 
@@ -49,7 +49,7 @@ describe('PasswordGeneratorWidget', () => {
     await user.click(screen.getByRole('button', { name: 'a-z' }))
     await user.click(screen.getByRole('button', { name: '0-9' }))
 
-    expect(screen.getByRole('button', { name: /regenerate/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /generate/i })).toBeDisabled()
     expect(screen.getByText(/select at least one character set/i)).toBeInTheDocument()
   })
 
@@ -59,7 +59,7 @@ describe('PasswordGeneratorWidget', () => {
 
     await user.click(screen.getByRole('button', { name: 'A-Z' }))
     await user.click(screen.getByRole('button', { name: 'a-z' }))
-    await user.click(screen.getByRole('button', { name: /regenerate/i }))
+    await user.click(screen.getByRole('button', { name: /generate/i }))
 
     expect(getOutput().value).toMatch(/^\d{16}$/)
   })
@@ -71,7 +71,7 @@ describe('PasswordGeneratorWidget', () => {
     await user.click(screen.getByRole('button', { name: '!@#' }))
     await user.click(screen.getByRole('button', { name: /exclude similar characters/i }))
     setLength('128')
-    await user.click(screen.getByRole('button', { name: /regenerate/i }))
+    await user.click(screen.getByRole('button', { name: /generate/i }))
 
     expect(getOutput().value).not.toMatch(/[Il1O0o|]/)
   })

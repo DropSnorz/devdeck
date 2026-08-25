@@ -63,15 +63,21 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <div className="relative">
-        <Input
-          readOnly
-          value={password}
-          placeholder="Generated password"
-          spellCheck={false}
-          className="border-border bg-background p-2 pr-14 font-mono text-xs dark:bg-muted/40"
-        />
-        <CopyButton value={password} className="absolute right-1 top-1" />
+      <div className="flex items-center gap-1.5">
+        <div className="relative min-w-0 flex-1">
+          <Input
+            readOnly
+            value={password}
+            placeholder="Generated password"
+            spellCheck={false}
+            className="border-border bg-background p-2 pr-14 font-mono text-xs dark:bg-muted/40"
+          />
+          <CopyButton value={password} className="absolute right-1 top-1" />
+        </div>
+        <Button type="button" size="sm" onClick={handleGenerate} disabled={!canGenerate} className="shrink-0">
+          <RefreshCw className="size-3.5" />
+          Generate
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -86,7 +92,7 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
 
       <NumberField label="Length" value={length} min={MIN_LENGTH} max={MAX_LENGTH} onChange={setLength} />
 
-      <div className="grid grid-cols-4 gap-1">
+      <div className="flex flex-wrap gap-1">
         {CHARSET_OPTIONS.map(({ label, key }) => {
           const active = charsetValues[key]
           return (
@@ -123,11 +129,6 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
       </Button>
 
       {!canGenerate && <ErrorMessage>Select at least one character set</ErrorMessage>}
-
-      <Button type="button" size="sm" onClick={handleGenerate} disabled={!canGenerate} className="w-fit">
-        <RefreshCw className="size-3.5" />
-        Regenerate
-      </Button>
     </div>
   )
 }

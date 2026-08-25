@@ -17,7 +17,7 @@ export default function NotesWidget({ instanceId }: WidgetProps) {
   // Persisted per-instance like JsonFormatterWidget's viewMode — the panel
   // stays open or closed exactly how the user last left it, and doesn't
   // count toward the widget's dirty state below (same as that viewMode).
-  const [statsOpen, setStatsOpen] = useWidgetState(instanceId, 'statsOpen', true)
+  const [statsOpen, setStatsOpen] = useWidgetState(instanceId, 'statsOpen', false)
   useWidgetDirty(instanceId, content !== DEFAULT_CONTENT)
 
   const stats = useMemo(() => computeTextStatistics(content), [content])

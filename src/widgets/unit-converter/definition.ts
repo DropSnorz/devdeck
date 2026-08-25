@@ -9,7 +9,7 @@ export const unitConverterDefinition: WidgetDefinition = {
   category: 'math',
   icon: Ruler,
   defaultSize: { w: 3, h: 3 },
-  minSize: { w: 3, h: 4 },
+  minSize: { w: 3, h: 3 },
   component: lazy(() => import('./UnitConverterWidget')),
   keywords: ['unit', 'convert', 'length', 'mass', 'weight', 'volume', 'temperature', 'data', 'bytes'],
 }

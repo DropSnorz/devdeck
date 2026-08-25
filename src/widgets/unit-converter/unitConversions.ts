@@ -46,13 +46,25 @@ export const DATA_UNITS: UnitDefinition[] = [
   { id: 'GiB', label: 'Gibibytes', toBase: 1024 ** 3 },
 ]
 
-export type LinearCategoryId = 'length' | 'mass' | 'volume' | 'data'
+export const TIME_UNITS: UnitDefinition[] = [
+  { id: 'ms', label: 'Milliseconds', toBase: 0.001 },
+  { id: 's', label: 'Seconds', toBase: 1 },
+  { id: 'min', label: 'Minutes', toBase: 60 },
+  { id: 'h', label: 'Hours', toBase: 3600 },
+  { id: 'd', label: 'Days', toBase: 86400 },
+  { id: 'wk', label: 'Weeks', toBase: 604800 },
+  { id: 'mo', label: 'Months (30 days)', toBase: 2592000 },
+  { id: 'yr', label: 'Years (365 days)', toBase: 31536000 },
+]
+
+export type LinearCategoryId = 'length' | 'mass' | 'volume' | 'data' | 'time'
 
 export const LINEAR_CATEGORIES: Record<LinearCategoryId, { label: string; units: UnitDefinition[] }> = {
   length: { label: 'Length', units: LENGTH_UNITS },
   mass: { label: 'Mass', units: MASS_UNITS },
   volume: { label: 'Volume', units: VOLUME_UNITS },
   data: { label: 'Data', units: DATA_UNITS },
+  time: { label: 'Time', units: TIME_UNITS },
 }
 
 /** Converts between two units of the same category via their shared base
