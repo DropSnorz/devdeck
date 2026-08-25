@@ -17,12 +17,12 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
  * most-reached-for first. */
 export const CATEGORY_ORDER: WidgetCategory[] = [
   'generators',
-  'encoding',
   'formatting',
-  'math',
+  'encoding',
   'security',
-  'color',
   'text',
+  'math',
+  'color',
   'network',
   'time',
 ]

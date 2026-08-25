@@ -17,7 +17,7 @@ const SAMPLE = '{\n  "hello": "world"\n}'
 
 export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
   const [input, setInput] = useWidgetState(instanceId, 'input', SAMPLE)
-  const [viewMode, setViewMode] = useWidgetState<ViewMode>(instanceId, 'viewMode', 'tree')
+  const [viewMode, setViewMode] = useWidgetState<ViewMode>(instanceId, 'viewMode', 'plain')
   const isDark = useIsDarkTheme()
   useWidgetDirty(instanceId, input !== SAMPLE)
 

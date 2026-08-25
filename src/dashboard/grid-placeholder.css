@@ -1,0 +1,8 @@
+/* react-grid-layout/css/styles.css defaults the drop placeholder to a solid
+ * red block — override with the app's blue accent (same hue used for the
+ * widget "dirty" indicator in index.css) so it reads as "drop here" rather
+ * than an error/warning state. */
+.react-grid-item.react-grid-placeholder {
+  background: var(--color-blue-400);
+  opacity: 0.3;
+}

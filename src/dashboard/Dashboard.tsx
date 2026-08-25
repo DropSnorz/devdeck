@@ -41,7 +41,7 @@ export function Dashboard() {
   }, [activeWidgetIds])
 
   return (
-    <div className="flex min-h-svh w-full flex-col">
+    <div className="flex h-svh w-full flex-col overflow-hidden">
       {/* Split in two so the tab bar (inside AppHeader) starts exactly where
           the sidebar ends / the content column begins below — this box is
           only ever as wide as WidgetSidebar itself (same width classes,
