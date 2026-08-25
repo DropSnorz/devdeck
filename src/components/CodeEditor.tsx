@@ -42,7 +42,12 @@ export interface CodeEditorProps {
  * here. `isDark` only affects CodeMirror's own internal `dark` scoping
  * flag (e.g. selection contrast defaults); the actual colors always come
  * from the CSS vars, which already flip via the `.dark` class on <html>. */
-function useAppEditorTheme(isDark: boolean): Extension {
+// Exported for reuse by MergeDiffView.tsx (text-diff's line-mode merge
+// view) — it builds its own raw CodeMirror panes rather than going through
+// this component, but wants the exact same base look (font, gutters,
+// selection, search panel) rather than duplicating ~170 lines of theme.
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAppEditorTheme(isDark: boolean): Extension {
   return useMemo(() => {
     // Unlike --color-muted-foreground (a semantic token, redefined under
     // .dark in index.css), --color-blue-600 etc. are Tailwind's raw palette

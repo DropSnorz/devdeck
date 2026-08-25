@@ -46,7 +46,8 @@ There are already plenty of great developer utility tools out there, covering ev
 | [DevTools Daily](https://www.devtoolsdaily.com/)     |            🟢 |          🟢 |      🟢 |                   🟡 |                            🔴 | ❓             |
 | [devtools.tools](https://www.devtools.tools)         |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓             |
 | [TrueDevTools](https://truedevtools.com/)            |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | 🟢 MIT         |
-| **This concept**                                     |            🟢 |          🟢 |      🟢 |                   🟢 |                            🟢 | **TBD**        |
+| [DevSnap.net](https://devsnap.net/)                  |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | 🔴 Proprietary |
+| **This concept**                                     |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | **TBD**        |
 
 ## Development
 

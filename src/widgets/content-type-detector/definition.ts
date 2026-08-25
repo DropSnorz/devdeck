@@ -8,7 +8,7 @@ export const contentTypeDetectorDefinition: WidgetDefinition = {
   description: 'Guess what a blob of text is — Base64, hex, JWT, JSON, UUID… even nested',
   category: 'text',
   icon: ScanSearch,
-  defaultSize: { w: 2, h: 3 },
+  defaultSize: { w: 3, h: 3 },
   minSize: { w: 2, h: 2 },
   component: lazy(() => import('./ContentTypeDetectorWidget')),
   keywords: [
