@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { EmojiPicker } from 'frimousse'
 import { AlertTriangle, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -37,7 +37,19 @@ export default function EmojiPickerWidget({ instanceId }: WidgetProps) {
   }
 
   return (
-    <EmojiPicker.Root onEmojiSelect={handleSelect} className="flex h-full flex-col gap-2 text-xs">
+    <EmojiPicker.Root
+      onEmojiSelect={handleSelect}
+      className="flex h-full flex-col gap-2 text-xs"
+      // frimousse defaults --frimousse-emoji-font to a hardcoded list of
+      // per-OS emoji font names ('Apple Color Emoji', 'Segoe UI Emoji',
+      // etc.) — on Firefox that list resolves to its bundled Twemoji
+      // Mozilla font instead of the OS's own, which renders monochrome/
+      // oddly-shaped glyphs for some emoji. Pointing it at the app's own
+      // system-font stack instead lets the browser pick whatever font it
+      // already uses for everything else, sidestepping that font-matching
+      // quirk entirely.
+      style={{ '--frimousse-emoji-font': 'var(--font-sans)' } as CSSProperties}
+    >
       <div className="flex shrink-0 items-center gap-2">
         <EmojiPicker.Search
           value={search}

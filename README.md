@@ -1,106 +1,172 @@
+<div align="center">
+
 # DevDeck
 
-A client-side browser toolbox for developers — a widget dashboard that puts everyday dev
-utilities (Base64, JSON formatting, JWT decoding, color conversion, hashing, and more) in one
-customizable, shareable screen.
+**A browser-based dashboard for everyday developer tools.**
 
-## Highlights
+Base64, JSON, JWTs, hashing, colors, regex, and more, pinned side by side on one
+customizable, shareable screen instead of scattered across two dozen browser tabs.
 
-- **Dashboard**: assemble widgets on a resizable, snap-to-grid layout. Drag/resize on
-  desktop and tablet; a read-only stacked view on phones.
-- **Save & share**: layouts persist to `localStorage` and can be shared via URL or QR code
-  (widget layout only — not live widget content). Opening a shared link always asks before
-  replacing your local dashboard.
-- **Wide-screen mode**: expand any pinned widget to fill the screen without losing what
-  you typed — or launch a tool that isn't on your dashboard at all from the tool browser or
-  the command palette (`Cmd/Ctrl+K`).
-- **Keyboard-accessible**: every widget has a "move/resize" dialog as a typed alternative
-  to dragging.
-- **100% client-side**: no backend, installable as a PWA, works offline.
+[**Live demo**](https://dropsnorz.github.io/devdeck/) · [Report a bug](https://github.com/DropSnorz/devdeck/issues)
+
+[![Deploy](https://img.shields.io/github/actions/workflow/status/DropSnorz/devdeck/pages.yml?branch=main&label=deploy)](https://github.com/DropSnorz/devdeck/actions/workflows/pages.yml)
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-5a0fc8?logo=pwa&logoColor=white)
+
+</div>
+
+---
+
+## Why DevDeck
+
+Plenty of good developer-utility sites already exist, covering Base64, JSON, colors,
+timestamps, JWTs, and everything else on this list. What none of them solve is context
+switching: opening a new tool means a new tab, losing your place, and finding your way back
+to what you were doing. Those small interruptions and context switching add up when you are debugging.
+
+DevDeck instead treats tools as widgets on a persistent dashboard. Pin the five or six you
+reach for constantly, arrange them however fits your screen, and keep working across all of
+them at once without losing state or hunting for the next tab.
+
+## Features
+
+### Client-side, offline, installable
+
+No backend, no account, nothing you paste ever leaves your browser. DevDeck installs as a
+PWA and keeps working without a connection.
+
+### A layout that's actually yours
+
+Widgets live on a resizable, snap-to-grid dashboard. Drag and resize on desktop or tablet;
+phones get a clean read-only stacked view instead.
+
+### Expand without losing your place
+
+Any pinned widget can fill the screen for focused work, and switching back leaves everything
+you typed exactly where it was. Need a tool that isn't on your dashboard at all? Launch it
+from the tool browser or the command palette (`Cmd/Ctrl+K`) without pinning it.
+
+
+### Save and share
+
+Layouts persist to `localStorage` automatically, and can be shared with a teammate through a
+URL or QR code. Only the layout travels, not live widget content, and opening a shared link
+always asks before it touches your local dashboard.
+
 
 ## Widgets
 
-UUID Generator, Base64, URL Encoder, Timestamp Converter, JSON Formatter, Color Converter,
-Hash Generator (MD5/SHA-1/256/384/512), JWT Decoder, Regex Tester, Text Case Converter.
+27 tools across 9 categories, and growing.
 
-## Alternatives
+| Category   | Widgets                                                                                  |
+| ---------- | ----------------------------------------------------------------------------------------- |
+| Generators | UUID Generator                                                                             |
+| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, YAML ↔ JSON Converter                |
+| Encoding   | Base64, JWT Encoder, URL Encoder                                                           |
+| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                         |
+| Text       | Content Type Detector, Emoji Picker, Notes, Regex Tester, Text Case Converter, Text Diff    |
+| Math       | Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
+| Color      | Color Converter, WCAG Contrast Checker                                                     |
+| Network    | Subnet Calculator                                                                          |
+| Time       | Timer                                                                                       |
 
-There are already plenty of great developer utility tools out there, covering everything from Base64 and JSON to colors, timestamps, JWTs, and more. But as the table below shows, we found that none quite fit the way we wanted to work. **Context switching** between tools means losing focus, finding the next tool, and getting back into what you were doing. These small interruptions add up and make simple tasks feel more complicated than they need to be. We wanted a simpler experience: **keep several tools open at once, move naturally between them, and keep the context of your work in one place.**
+## How it compares
 
-| Alternative                                          | Tool coverage | Local-first | Web app | Persistent workspace | Multiple tools simultaneously | License        |
-| ---------------------------------------------------- | ------------: | ----------: | ------: | -------------------: | ----------------------------: | -------------- |
-| [DevToys](https://devtoys.app/)                      |            🟢 |          🟢 |      🔴 |                   🔴 |                            🔴 | 🟢 MIT         |
-| [DevUtils](https://devutils.com/)                    |            🟢 |          🟢 |      🔴 |                   🔴 |                            🔴 | 🔴 Proprietary |
-| [devutils.sh](https://devutils.sh/)                  |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓             |
-| [NextDevTools](https://www.nextdevtools.com/)        |            🟢 |          🟢 |      🟢 |                   🔴 |                            🟡 | ❓             |
-| [SafeUtils](https://safeutils.com/)                  |            🟢 |          🟢 |      🔴 |                   🔴 |                            🔴 | 🔴 Proprietary |
-| [Boop](https://github.com/IvanMathy/Boop)            |            🟢 |          🟢 |      🔴 |                   🟡 |                            🔴 | 🟢 MIT         |
-| [Devly](https://devly.techfixpro.net/)               |            🟢 |          🟢 |      🔴 |                   🔴 |                            🟡 | 🔴 Proprietary |
-| [DevToolGrid](https://devtoolgrid.com/)              |            🟡 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓             |
-| [Detools-it](https://detools-it.com/)                |            🟡 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓             |
-| [devdeck.ir](https://devdeck.ir/)                    |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓             |
-| [IT-Tools](https://it-tools.tech/)                   |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | 🟢 GPL-3.0     |
-| [CyberChef](https://gchq.github.io/CyberChef/)       |            🟢 |          🟢 |      🟢 |                   🟡 |                            🟡 | 🟢 Apache-2.0  |
-| [DevTools-X](https://github.com/fosslife/devtools-x) |            🟢 |          🟢 |      🔴 |                   🔴 |                            🔴 | 🟢 MIT         |
-| [Open Dev](https://github.com/Jamalianpour/open-dev) |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | 🟢 MIT         |
-| [DevTools Daily](https://www.devtoolsdaily.com/)     |            🟢 |          🟢 |      🟢 |                   🟡 |                            🔴 | ❓             |
-| [devtools.tools](https://www.devtools.tools)         |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | ❓             |
-| [TrueDevTools](https://truedevtools.com/)            |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | 🟢 MIT         |
-| [DevSnap.net](https://devsnap.net/)                  |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | 🔴 Proprietary |
-| **This concept**                                     |            🟢 |          🟢 |      🟢 |                   🔴 |                            🔴 | **TBD**        |
+There are already plenty of great developer utility tools out there, covering everything from Base64 and JSON to colors, timestamps, JWTs, and more. Many are recent developments from the AI-coding boom, and it shows: most feel like variations on the same template rather than a considered design choice. But as the table below shows, differentiation was never really the problem we cared about most. **Context switching** between tools means losing focus, finding the next tool, and getting back into what you were doing. These small interruptions add up and make simple tasks feel more complicated than they need to be. We wanted a simpler experience: **keep several tools open at once, move naturally between them, and keep the context of your work in one place.**
+
+This dashboard-first approach won't be for everyone. It's a deliberate attempt to stand apart from the alternatives below.
+
+*Worth a look before building a new one.*
+
+| Tool                                                  | Local first | Offline App | Web app | Multi-tools single page | Persistent workspace | License        |
+| ------------------------------------------------------ | :---------: | :---------: | :-----: | :-----------------------: | :------------------: | -------------- |
+| ⭐ **DevDeck**                                            |     🟢       |     🟢       |    🟢    |            🟢              |          🟢           | **TBD**        |
+| [DevToys](https://devtoys.app/)                        |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🟢 MIT         |
+| [DevUtils](https://devutils.com/)                      |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🔴 Proprietary |
+| [devutils.sh](https://devutils.sh/)                    |     🟢       |     🟢       |    🟢    |            🔴              |          🔴           | ❓             |
+| [NextDevTools](https://www.nextdevtools.com/)          |     🟢       |     🔴       |    🟢    |            🟡              |          🔴           | ❓             |
+| [SafeUtils](https://safeutils.com/)                    |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🔴 Proprietary |
+| [Boop](https://github.com/IvanMathy/Boop)              |     🟢       |     🟢       |    🔴    |            🔴              |          🟡           | 🟢 MIT         |
+| [Devly](https://devly.techfixpro.net/)                 |     🟢       |     🟢       |    🔴    |            🟡              |          🔴           | 🔴 Proprietary |
+| [DevToolGrid](https://devtoolgrid.com/)                |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
+| [devdeck.ir](https://devdeck.ir/)                      |     🟢       |     ❓       |    🟢    |            🔴              |          🔴           | ❓             |
+| [IT-Tools](https://it-tools.tech/)                     |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 GPL-3.0     |
+| [CyberChef](https://gchq.github.io/CyberChef/)         |     🟢       |     🟡       |    🟢    |            🟡              |          🟡           | 🟢 Apache-2.0  |
+| [DevTools-X](https://github.com/fosslife/devtools-x)   |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🟢 MIT         |
+| [Open Dev](https://github.com/Jamalianpour/open-dev)   |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 MIT         |
+| [DevTools Daily](https://www.devtoolsdaily.com/)       |     🟢       |     🔴       |    🟢    |            🔴              |          🟡           | ❓             |
+| [devtools.tools](https://www.devtools.tools)           |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
+| [TrueDevTools](https://truedevtools.com/)              |     🟢       |     🟢       |    🟢    |            🔴              |          🔴           | 🟢 MIT         |
+| [DevSnap.net](https://devsnap.net/)                    |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
+| [developers.do](https://github.com/hminaya/devtools)   |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟡 CC BY-NC-SA |
+| [JamDev](https://github.com/jamdotdev/jam-dev-utilities) |   🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 GPL-3.0     |
+| [Online Web Dev Tools](https://onlinewebdevtools.com/) |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
+| [DevToolbox](https://tools-dev.com)                    |     🟡       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
+| [GameParticles](https://gameparticles.com/)            |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
+| [devs-forge](https://github.com/chinmaygirkar786/devs-forge) | 🟢     |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
+| [CodersTool](https://www.coderstool.com/)              |     🟡       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
+| [OpenReplay Tools](https://openreplay.com/tools/)      |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
+| [ToolFlic](https://toolflic.com/)                      |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
+| [Universal Dev Tools](https://universaldevtools.in/)   |     🔴       |     🔴       |    🟢    |            🔴              |          ❓           | ❓             |
+| [WebDev-Tools](https://webdev-tools.info/)             |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 MIT         |
 
 ## Development
+
+Requires Node 20 or newer.
 
 ```sh
 npm install
 npm run dev
 ```
 
-## Scripts
+Or just use the [live demo](https://dropsnorz.github.io/devdeck/), nothing to install.
 
-| Script                 | Description                              |
-| ---------------------- | ---------------------------------------- |
-| `npm run dev`          | Start the Vite dev server                |
-| `npm run build`        | Type-check and build for production      |
-| `npm run preview`      | Preview the production build locally     |
-| `npm run lint`         | Lint the codebase with ESLint            |
-| `npm run format`       | Format the codebase with Prettier        |
-| `npm run format:check` | Check formatting without writing changes |
-| `npm run test`         | Run the test suite once                  |
-| `npm run test:watch`   | Run the test suite in watch mode         |
+### Available scripts
+
+| Script                  | Description                               |
+| ------------------------ | ------------------------------------------ |
+| `npm run dev`            | Start the Vite dev server                  |
+| `npm run build`          | Type-check and build for production        |
+| `npm run preview`        | Preview the production build locally       |
+| `npm run lint`           | Lint the codebase with ESLint               |
+| `npm run format`         | Format the codebase with Prettier           |
+| `npm run format:check`   | Check formatting without writing changes    |
+| `npm run test`           | Run the test suite once                     |
+| `npm run test:watch`     | Run the test suite in watch mode            |
 
 ## Architecture
 
-```
+```text
 src/
-  dashboard/       # grid, toolbar, zustand store, localStorage persistence, share/QR flow
-  widgets/          # one folder per widget: definition.ts (registry metadata) + <Name>Widget.tsx
-  widget-shell/      # common chrome every widget renders inside (title bar, expand/remove,
-                       error boundary, keyboard move/resize dialog)
-  overlay/           # fullscreen expand mechanism (portal-based, state-preserving)
-  tool-browser/       # searchable catalog of every widget
-  command-palette/    # Cmd/Ctrl+K launcher
-  components/, lib/, hooks/, types/
+  dashboard/       grid, toolbar, Zustand store, localStorage persistence, share/QR flow
+  widgets/          one folder per widget: definition.ts (registry metadata) + <Name>Widget.tsx
+  widget-shell/      chrome every widget renders inside: title bar, expand/remove,
+                       error boundary, keyboard move/resize dialog
+  overlay/           fullscreen expand target and its store
+  sidebar/            searchable catalog of every widget
+  command-palette/    Cmd/Ctrl+K launcher
+  components/, lib/, hooks/, theme/, types/
 ```
 
-**Widget registry** (`src/widgets/registry.ts`) is the single source of truth every other
-piece of UI reads from — the dashboard grid, the tool browser, and the command palette never
-duplicate widget metadata. Each widget's actual component is `React.lazy`-loaded, so adding a
-widget never bloats another widget's bundle; `npm run build`'s per-file chunk output is worth
-scanning after adding one to confirm it split out cleanly.
+The widget registry (`src/widgets/registry.ts`) is the single source of truth every other
+piece of UI reads from: the dashboard grid, the sidebar catalog, and the command palette
+never duplicate widget metadata. Each widget's component is `React.lazy`-loaded, so adding
+a widget never bloats another widget's bundle.
 
-**Expand-to-fullscreen** works by portaling a pinned widget's rendered content between its
-grid cell and a shared overlay slot — the portal _target_ changes, not whether the content is
-portaled at all, which is what keeps the widget mounted (and its state intact) across the
-transition. See `src/dashboard/PortalableWidget.tsx` and `src/overlay/WidgetOverlay.tsx`.
+Expanding a widget to fullscreen doesn't move any DOM around. A pinned widget's grid cell
+and the fullscreen overlay each mount their own independent copy of the same component; both
+read and write the same entry in a shared, instanceId-keyed store (`useWidgetState`), so
+switching between the two is just two mounts of the same state rather than a portal carrying
+one DOM tree between them. See `src/overlay/WidgetOverlay.tsx`.
 
-## Status
+## Testing
 
-All planned milestones (M1–M7) are implemented: dashboard shell, widget registry, drag/resize
-grid with persistence, the full widget set, URL + QR sharing, fullscreen expand, tool
-browser, command palette, and a test suite covering the share-link codec, the widget
-registry, the dashboard store, error isolation, and the command palette.
+Vitest and React Testing Library, with tests colocated next to the code they cover
+(`*.test.ts` / `*.test.tsx`). Coverage spans the widget registry, the dashboard store, the
+share-link codec, error isolation, and per-widget behavior.
 
-Not yet done, worth doing next: code-splitting the app-shell chrome (command palette, tool
-browser, share modal) the same way widgets are split, a proper focus trap in the modal
-dialogs, and multi-dashboard support if that's ever wanted.
+## License
+
+TBD.

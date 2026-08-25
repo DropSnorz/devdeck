@@ -1,4 +1,5 @@
-import { cn } from '@/lib/cn'
+import { Download, Laptop, WifiOff, type LucideIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { groupWidgetsByCategory } from '@/widgets/categories'
 import type { WidgetDefinition } from '@/widgets/types'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
@@ -22,30 +23,34 @@ export function WidgetSidebar() {
   return (
     <aside
       className={cn(
-        'hidden shrink-0 flex-col overflow-y-auto border-r border-border bg-card p-2 md:flex',
+        'hidden shrink-0 flex-col border-r border-border bg-card md:flex',
         collapsed ? 'w-14' : 'w-60',
       )}
     >
-      <div className="space-y-3">
-        {groups.map((group) => (
-          <div key={group.category}>
-            {!collapsed && (
-              <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                {group.label}
-              </p>
-            )}
-            <ul className="space-y-0.5">
-              {group.widgets.map((widget) => (
-                <SidebarWidgetItem
-                  key={widget.id}
-                  widget={widget}
-                  collapsed={collapsed}
-                />
-              ))}
-            </ul>
-          </div>
-        ))}
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div className="space-y-3">
+          {groups.map((group) => (
+            <div key={group.category}>
+              {!collapsed && (
+                <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {group.label}
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                {group.widgets.map((widget) => (
+                  <SidebarWidgetItem
+                    key={widget.id}
+                    widget={widget}
+                    collapsed={collapsed}
+                  />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
+
+      <BrandFooter collapsed={collapsed} />
     </aside>
   )
 }
@@ -94,5 +99,91 @@ function SidebarWidgetItem({
         {!collapsed && <span className="truncate">{widget.name}</span>}
       </div>
     </li>
+  )
+}
+
+/** Fixed panel pinned below the (independently scrolling) widget list —
+ * a "works offline" callout plus attribution back to the Astrelite site,
+ * not part of the tool catalog so it never scrolls out of view with it. */
+function BrandFooter({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className="shrink-0 border-t border-border p-2">
+      <div
+        className={cn(
+          'flex items-center gap-3 px-1 py-1',
+          // Three icon+label badges fit fine in one row at full width, but
+          // not squeezed into the collapsed (icon-only) sidebar — stack
+          // them instead, one per row, matching how the widget list itself
+          // already collapses to a single centered icon per row.
+          collapsed && 'flex-col gap-1 px-0',
+        )}
+      >
+        <CapabilityBadge icon={WifiOff} label="Offline" collapsed={collapsed} />
+        <CapabilityBadge icon={Laptop} label="Run locally" collapsed={collapsed} />
+        <CapabilityBadge icon={Download} label="Installable" collapsed={collapsed} />
+      </div>
+      <a
+        href="https://astrelite.com"
+        target="_blank"
+        rel="noreferrer"
+        title="Astrelite"
+        className={cn(
+          'flex items-center gap-1.5 rounded-md px-1 py-1 text-foreground hover:bg-accent',
+          collapsed && 'justify-center',
+        )}
+      >
+        <AstreliteMark className="size-3.5 shrink-0" />
+        {!collapsed && (
+          <span className="text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
+        )}
+      </a>
+    </div>
+  )
+}
+
+/** One static, muted capability badge in the footer's shared row (e.g.
+ * "Offline", "Installable") — not interactive, just a quiet statement of
+ * what's already true about this app rather than a control. */
+function CapabilityBadge({
+  icon: Icon,
+  label,
+  collapsed,
+}: {
+  icon: LucideIcon
+  label: string
+  collapsed: boolean
+}) {
+  return (
+    <div
+      title={collapsed ? label : undefined}
+      className={cn(
+        'flex items-center gap-1.5 text-[10px] text-muted-foreground/60',
+        collapsed && 'justify-center',
+      )}
+    >
+      <Icon className="size-3 shrink-0" />
+      {!collapsed && <span>{label}</span>}
+    </div>
+  )
+}
+
+/** The Astrelite brand mark — same path data as astrelite.com's own
+ * favicon/wordmark lockup, recolored via `currentColor` instead of a fixed
+ * white/black so it follows this app's own light/dark theme. */
+function AstreliteMark({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 104 94"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={5}
+      strokeLinejoin="miter"
+      strokeMiterlimit={8}
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M58 4 L96 44 L66 90 L18 72 L8 30 Z" />
+      <path d="M42 44 L58 4 M42 44 L96 44 M42 44 L18 72" />
+    </svg>
   )
 }

@@ -41,6 +41,19 @@ describe('UnitConverterWidget', () => {
     expect(screen.getByText('212')).toBeInTheDocument()
   })
 
+  it('switches to the Time category and converts days to hours', async () => {
+    const user = userEvent.setup()
+    render(<UnitConverterWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Time' }))
+    await user.selectOptions(screen.getByLabelText(/^from$/i), 'd')
+    await user.selectOptions(screen.getByLabelText(/^to$/i), 'h')
+    await user.clear(screen.getByLabelText(/value/i))
+    await user.type(screen.getByLabelText(/value/i), '2')
+
+    expect(screen.getByText('48')).toBeInTheDocument()
+  })
+
   it('shows a tiny nonzero result in scientific notation instead of a misleading "0"', async () => {
     const user = userEvent.setup()
     render(<UnitConverterWidget instanceId="test" mode="grid" />)

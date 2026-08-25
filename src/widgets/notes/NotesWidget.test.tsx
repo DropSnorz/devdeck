@@ -15,8 +15,17 @@ function statValue(label: string): string | null {
 }
 
 describe('NotesWidget', () => {
-  it('starts empty with every statistic at zero', () => {
+  it('starts with the statistics panel collapsed', () => {
     render(<NotesWidget instanceId="test" mode="grid" />)
+
+    expect(screen.queryByText('Characters')).not.toBeInTheDocument()
+  })
+
+  it('starts empty with every statistic at zero, once expanded', async () => {
+    const user = userEvent.setup()
+    render(<NotesWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Statistics' }))
 
     expect(statValue('Characters')).toBe('0')
     expect(statValue('Words')).toBe('0')
@@ -26,9 +35,11 @@ describe('NotesWidget', () => {
     expect(statValue('Reading time')).toBe('0 min')
   })
 
-  it('recomputes statistics as the note is edited', () => {
+  it('recomputes statistics as the note is edited', async () => {
+    const user = userEvent.setup()
     render(<NotesWidget instanceId="test" mode="grid" />)
 
+    await user.click(screen.getByRole('button', { name: 'Statistics' }))
     setCodeMirrorValue(screen.getByRole('textbox', { name: 'Notes' }), 'The quick brown fox\njumps over the lazy dog.')
 
     expect(statValue('Characters')).toBe('44')
@@ -39,18 +50,18 @@ describe('NotesWidget', () => {
     expect(statValue('Reading time')).toBe('1 min')
   })
 
-  it('hides the statistics rows when the panel is collapsed', async () => {
+  it('toggles the statistics rows open and closed', async () => {
     const user = userEvent.setup()
     render(<NotesWidget instanceId="test" mode="grid" />)
-
-    expect(screen.getByText('Characters')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Statistics' }))
 
     expect(screen.queryByText('Characters')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }))
 
     expect(screen.getByText('Characters')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Statistics' }))
+
+    expect(screen.queryByText('Characters')).not.toBeInTheDocument()
   })
 })

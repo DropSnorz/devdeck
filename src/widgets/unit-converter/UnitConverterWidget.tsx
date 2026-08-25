@@ -25,6 +25,7 @@ const CATEGORY_OPTIONS: { label: string; value: CategoryId }[] = [
   { label: 'Mass', value: 'mass' },
   { label: 'Volume', value: 'volume' },
   { label: 'Data', value: 'data' },
+  { label: 'Time', value: 'time' },
   { label: 'Temp', value: 'temperature' },
 ]
 
