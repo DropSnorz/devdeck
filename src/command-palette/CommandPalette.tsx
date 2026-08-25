@@ -6,6 +6,7 @@ import { useOverlayStore } from '@/overlay/useOverlayStore'
 import { groupWidgetsByCategory } from '@/widgets/categories'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { ShareModal } from '@/dashboard/ShareModal'
+import { Button } from '@/components/ui/button'
 import { useCommandPaletteStore } from './useCommandPaletteStore'
 
 const ITEM_CLASS =
@@ -87,8 +88,10 @@ export function CommandPalette() {
                         {widget.description}
                       </p>
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="xs"
                       onClick={(event) => {
                         // Don't also trigger the row's own onSelect (preview)
                         // — this is a second, independent action.
@@ -98,10 +101,11 @@ export function CommandPalette() {
                       }}
                       aria-label={`Add ${widget.name} to dashboard`}
                       title="Add to dashboard"
-                      className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      className="shrink-0"
                     >
                       <Plus className="size-3.5" />
-                    </button>
+                      Add
+                    </Button>
                   </Command.Item>
                 )
               })}
