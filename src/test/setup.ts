@@ -44,3 +44,21 @@ if (!window.ResizeObserver) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {}
 }
+
+// jsdom doesn't implement Range.getClientRects/getBoundingClientRect (real
+// layout geometry, which it never computes) — @codemirror/merge's MergeView
+// schedules a requestAnimationFrame-based measure pass (to align the two
+// panes' gutters/revert controls) on construction and after every
+// reconfigure(), which walks into these to measure line heights. Real
+// browsers always have them; without a stub here, that measure pass throws
+// an *uncaught* exception (it runs in a rAF callback outside any test's own
+// call stack, so it isn't a normal assertion failure — it can still fire
+// after a test that triggered several edits finishes, before its cleanup's
+// `MergeView.destroy()` gets a chance to cancel the pending frame).
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = () => [] as unknown as DOMRectList
+}
+if (!Range.prototype.getBoundingClientRect) {
+  Range.prototype.getBoundingClientRect = () =>
+    ({ x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 }) as DOMRect
+}
