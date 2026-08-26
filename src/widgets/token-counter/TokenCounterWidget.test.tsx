@@ -4,20 +4,19 @@ import userEvent from '@testing-library/user-event'
 import TokenCounterWidget from './TokenCounterWidget'
 
 describe('TokenCounterWidget', () => {
-  it('starts at zero for both counters', () => {
+  it('starts at zero', () => {
     render(<TokenCounterWidget instanceId="test" mode="grid" />)
-    expect(screen.getByText('ChatGPT')).toBeInTheDocument()
-    expect(screen.getByText('Claude')).toBeInTheDocument()
-    expect(screen.getAllByText('~0')).toHaveLength(2)
+    expect(screen.getByText('ChatGPT / Claude tokens')).toBeInTheDocument()
+    expect(screen.getByText('~0')).toBeInTheDocument()
   })
 
-  it('shows an estimated token count for both models once text is entered', async () => {
+  it('shows a single estimated token count once text is entered', async () => {
     const user = userEvent.setup()
     render(<TokenCounterWidget instanceId="test" mode="grid" />)
 
     await user.type(screen.getByPlaceholderText(/paste a prompt/i), 'Hello, world!')
 
-    expect(screen.getAllByText(/^~\d+$/)).toHaveLength(2)
+    expect(screen.getByText(/^~\d+$/)).toBeInTheDocument()
   })
 
   it('shows character and word counts', async () => {

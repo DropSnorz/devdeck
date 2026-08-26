@@ -1,36 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { countTextStats, estimateChatGptTokens, estimateClaudeTokens } from './tokenCounter'
+import { countTextStats, estimateTokens } from './tokenCounter'
 
-describe('estimateChatGptTokens', () => {
+describe('estimateTokens', () => {
   it('returns 0 for empty or whitespace-only text', () => {
-    expect(estimateChatGptTokens('')).toBe(0)
-    expect(estimateChatGptTokens('   ')).toBe(0)
+    expect(estimateTokens('')).toBe(0)
+    expect(estimateTokens('   ')).toBe(0)
   })
 
   it('returns at least 1 for any non-empty text', () => {
-    expect(estimateChatGptTokens('a')).toBeGreaterThanOrEqual(1)
+    expect(estimateTokens('a')).toBeGreaterThanOrEqual(1)
   })
 
   it('grows with longer input', () => {
-    const short = estimateChatGptTokens('The quick brown fox.')
-    const long = estimateChatGptTokens('The quick brown fox jumps over the lazy dog, again and again.')
-    expect(long).toBeGreaterThan(short)
-  })
-})
-
-describe('estimateClaudeTokens', () => {
-  it('returns 0 for empty or whitespace-only text', () => {
-    expect(estimateClaudeTokens('')).toBe(0)
-    expect(estimateClaudeTokens('   ')).toBe(0)
-  })
-
-  it('returns at least 1 for any non-empty text', () => {
-    expect(estimateClaudeTokens('a')).toBeGreaterThanOrEqual(1)
-  })
-
-  it('grows with longer input', () => {
-    const short = estimateClaudeTokens('The quick brown fox.')
-    const long = estimateClaudeTokens('The quick brown fox jumps over the lazy dog, again and again.')
+    const short = estimateTokens('The quick brown fox.')
+    const long = estimateTokens('The quick brown fox jumps over the lazy dog, again and again.')
     expect(long).toBeGreaterThan(short)
   })
 })

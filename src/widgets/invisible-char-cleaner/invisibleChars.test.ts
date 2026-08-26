@@ -6,6 +6,7 @@ import {
   extractHiddenTagText,
   groupMatches,
   scanText,
+  WELL_KNOWN_CHARS,
 } from './invisibleChars'
 
 describe('classifyCodePoint', () => {
@@ -152,6 +153,38 @@ describe('buildPreviewSegments', () => {
     const segments = buildPreviewSegments(text, scanText(text))
     expect(segments[0].kind).toBe('invisible')
     expect(segments[segments.length - 1].kind).toBe('invisible')
+  })
+})
+
+describe('WELL_KNOWN_CHARS', () => {
+  it('is non-empty and has no duplicate code points', () => {
+    expect(WELL_KNOWN_CHARS.length).toBeGreaterThan(0)
+    const codePoints = WELL_KNOWN_CHARS.map((c) => c.codePoint)
+    expect(new Set(codePoints).size).toBe(codePoints.length)
+  })
+
+  it('gives every entry a single character, a name, and a matching U+ label', () => {
+    for (const entry of WELL_KNOWN_CHARS) {
+      expect(Array.from(entry.char)).toHaveLength(1)
+      expect(entry.char.codePointAt(0)).toBe(entry.codePoint)
+      expect(entry.name.length).toBeGreaterThan(0)
+      expect(entry.codePointLabel).toBe(`U+${entry.codePoint.toString(16).toUpperCase().padStart(4, '0')}`)
+    }
+  })
+
+  it('stays consistent with classifyCodePoint for every entry', () => {
+    for (const entry of WELL_KNOWN_CHARS) {
+      expect(classifyCodePoint(entry.codePoint)).toEqual({
+        name: entry.name,
+        shortLabel: entry.shortLabel,
+        category: entry.category,
+      })
+    }
+  })
+
+  it('includes the most common zero-width and bidi-override characters', () => {
+    const shortLabels = WELL_KNOWN_CHARS.map((c) => c.shortLabel)
+    expect(shortLabels).toEqual(expect.arrayContaining(['ZWSP', 'ZWJ', 'ZWNJ', 'BOM', 'RLO', 'LRO']))
   })
 })
 

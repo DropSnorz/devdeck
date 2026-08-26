@@ -4,27 +4,17 @@
 /** Neither OpenAI nor Anthropic publish a tokenizer that can run fully
  * offline for every current model (OpenAI's real BPE tables exist but are
  * hundreds of KB to megabytes each; Anthropic doesn't publish one at all),
- * and DevDeck widgets don't call out to an API or ship a key. So both
- * counts below are the same kind of rough, provider-agnostic estimate:
- * a blend of a word-based guess (~1.3 tokens/word for English prose) and
- * a character-based guess (~4 chars/token), which stays reasonable across
- * prose and code-like text without pretending to be exact. */
-function estimateTokens(text: string): number {
+ * and DevDeck widgets don't call out to an API or ship a key. This is a
+ * rough, provider-agnostic estimate instead: a blend of a word-based guess
+ * (~1.3 tokens/word for English prose) and a character-based guess
+ * (~4 chars/token), which stays reasonable across prose and code-like text
+ * without pretending to be exact for any one model's real tokenizer. */
+export function estimateTokens(text: string): number {
   if (!text.trim()) return 0
   const wordCount = text.split(/\s+/).filter(Boolean).length
   const byWords = wordCount * 1.3
   const byChars = text.length / 4
   return Math.max(1, Math.round((byWords + byChars) / 2))
-}
-
-/** Rough estimate of ChatGPT (GPT) token usage. Not the real tokenizer. */
-export function estimateChatGptTokens(text: string): number {
-  return estimateTokens(text)
-}
-
-/** Rough estimate of Claude token usage. Not the real tokenizer. */
-export function estimateClaudeTokens(text: string): number {
-  return estimateTokens(text)
 }
 
 export interface TextStats {

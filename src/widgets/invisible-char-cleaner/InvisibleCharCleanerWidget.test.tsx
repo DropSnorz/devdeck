@@ -78,4 +78,28 @@ describe('InvisibleCharCleanerWidget', () => {
     expect(screen.getByText(/no-break space/i)).toBeInTheDocument()
     expect(screen.getByText('a b', { selector: 'pre' })).toBeInTheDocument()
   })
+
+  it('switches to a reference list of well-known invisible characters to copy', async () => {
+    const user = userEvent.setup()
+    render(<InvisibleCharCleanerWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Copy characters' }))
+
+    expect(screen.getByText('Zero Width Space')).toBeInTheDocument()
+    expect(screen.getByText('U+200B')).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/paste text to scan/i)).not.toBeInTheDocument()
+    // One CopyButton per well-known character.
+    expect(screen.getAllByRole('button', { name: 'Copy' }).length).toBeGreaterThan(1)
+  })
+
+  it('switching back to Clean keeps whatever was already pasted', async () => {
+    const user = userEvent.setup()
+    render(<InvisibleCharCleanerWidget instanceId="test" mode="grid" />)
+
+    await pasteInto(user, screen.getByPlaceholderText(/paste text to scan/i), 'hello world')
+    await user.click(screen.getByRole('button', { name: 'Copy characters' }))
+    await user.click(screen.getByRole('button', { name: 'Clean' }))
+
+    expect(screen.getByPlaceholderText(/paste text to scan/i)).toHaveValue('hello world')
+  })
 })

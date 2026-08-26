@@ -121,6 +121,47 @@ export function classifyCodePoint(codePoint: number): CharInfo | null {
   return null
 }
 
+export interface WellKnownChar extends CharInfo {
+  char: string
+  codePoint: number
+  /** Precomputed "U+XXXX" label for display. */
+  codePointLabel: string
+}
+
+// The subset of invisible characters worth surfacing as a copy-paste
+// reference: common editor/data hazards (ZWSP, BOM, NBSP, soft hyphen),
+// the bidi controls behind "Trojan Source"-style spoofing (LRO/RLO and
+// friends), and a couple of representative space/tag widths. Not the full
+// classifyCodePoint range — that includes hundreds of tag characters and
+// variation selectors with no reason to appear in a copy list.
+const WELL_KNOWN_CODE_POINTS = [
+  0x200b, // Zero Width Space
+  0x200c, // Zero Width Non-Joiner
+  0x200d, // Zero Width Joiner
+  0x2060, // Word Joiner
+  0xfeff, // Zero Width No-Break Space (BOM)
+  0x00ad, // Soft Hyphen
+  0x00a0, // No-Break Space
+  0x2009, // Thin Space
+  0x2003, // Em Space
+  0x200e, // Left-to-Right Mark
+  0x200f, // Right-to-Left Mark
+  0x202a, // Left-to-Right Embedding
+  0x202b, // Right-to-Left Embedding
+  0x202c, // Pop Directional Formatting
+  0x202d, // Left-to-Right Override
+  0x202e, // Right-to-Left Override
+]
+
+/** Well-known invisible characters worth having on hand to copy/paste
+ * (test data, security research, reproducing a bug), derived from
+ * `classifyCodePoint` so names/labels never drift from the detector. */
+export const WELL_KNOWN_CHARS: WellKnownChar[] = WELL_KNOWN_CODE_POINTS.map((codePoint) => {
+  const info = classifyCodePoint(codePoint)
+  if (!info) throw new Error(`Well-known code point U+${hex(codePoint)} is not classified as invisible`)
+  return { ...info, char: String.fromCodePoint(codePoint), codePoint, codePointLabel: `U+${hex(codePoint)}` }
+})
+
 export interface CharMatch extends CharInfo {
   index: number
   char: string
