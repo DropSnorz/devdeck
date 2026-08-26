@@ -58,7 +58,7 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-27 tools across 9 categories, and growing.
+28 tools across 10 categories, and growing.
 
 | Category   | Widgets                                                                                  |
 | ---------- | ----------------------------------------------------------------------------------------- |
@@ -66,6 +66,7 @@ always asks before it touches your local dashboard.
 | Formatting | Cron Expression, JSON Formatter, Timestamp Converter, YAML ↔ JSON Converter                |
 | Encoding   | Base64, JWT Encoder, URL Encoder                                                           |
 | Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                         |
+| AI / LLM   | Invisible Character Cleaner                                                                |
 | Text       | Content Type Detector, Emoji Picker, Notes, Regex Tester, Text Case Converter, Text Diff    |
 | Math       | Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
 | Color      | Color Converter, WCAG Contrast Checker                                                     |

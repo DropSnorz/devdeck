@@ -11,6 +11,7 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   text: 'Text',
   network: 'Network',
   time: 'Time',
+  ai: 'AI / LLM',
 }
 
 /** Display order for category sections — not alphabetical, roughly
@@ -20,6 +21,7 @@ export const CATEGORY_ORDER: WidgetCategory[] = [
   'formatting',
   'encoding',
   'security',
+  'ai',
   'text',
   'math',
   'color',
