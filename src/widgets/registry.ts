@@ -27,6 +27,7 @@ import { timerDefinition } from './timer/definition'
 import { contentTypeDetectorDefinition } from './content-type-detector/definition'
 import { yamlJsonConverterDefinition } from './yaml-json-converter/definition'
 import { invisibleCharCleanerDefinition } from './invisible-char-cleaner/definition'
+import { tokenCounterDefinition } from './token-counter/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -59,6 +60,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   contentTypeDetectorDefinition,
   yamlJsonConverterDefinition,
   invisibleCharCleanerDefinition,
+  tokenCounterDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(

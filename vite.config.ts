@@ -26,6 +26,20 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: {
+        // The Token Counter widget bundles gpt-tokenizer's BPE merge table
+        // (~1MB gzipped) for exact ChatGPT counts. Precaching it would add
+        // that to every install even for people who never open the widget,
+        // so it's excluded here and instead cached on first use.
+        globIgnores: ['**/TokenCounterWidget-*.js'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/TokenCounterWidget-.*\.js$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'token-counter-chunk' },
+          },
+        ],
+      },
       manifest: {
         name: 'localgrid.dev',
         short_name: 'localgrid',
