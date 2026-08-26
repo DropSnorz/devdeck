@@ -8,19 +8,16 @@ describe('TokenCounterWidget', () => {
     render(<TokenCounterWidget instanceId="test" mode="grid" />)
     expect(screen.getByText('ChatGPT')).toBeInTheDocument()
     expect(screen.getByText('Claude')).toBeInTheDocument()
-    expect(screen.getByText('0')).toBeInTheDocument()
-    expect(screen.getByText('~0')).toBeInTheDocument()
+    expect(screen.getAllByText('~0')).toHaveLength(2)
   })
 
-  it('shows the exact ChatGPT token count and an approximate Claude count once text is entered', async () => {
+  it('shows an estimated token count for both models once text is entered', async () => {
     const user = userEvent.setup()
     render(<TokenCounterWidget instanceId="test" mode="grid" />)
 
     await user.type(screen.getByPlaceholderText(/paste a prompt/i), 'Hello, world!')
 
-    // "Hello, world!" is a stable 4-token sequence under o200k_base.
-    expect(screen.getByText('4')).toBeInTheDocument()
-    expect(screen.getByText(/^~\d+$/)).toBeInTheDocument()
+    expect(screen.getAllByText(/^~\d+$/)).toHaveLength(2)
   })
 
   it('shows character and word counts', async () => {

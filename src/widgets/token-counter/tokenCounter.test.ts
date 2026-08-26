@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { countChatGptTokens, countTextStats, estimateClaudeTokens } from './tokenCounter'
+import { countTextStats, estimateChatGptTokens, estimateClaudeTokens } from './tokenCounter'
 
-describe('countChatGptTokens', () => {
-  it('returns 0 for empty text', () => {
-    expect(countChatGptTokens('')).toBe(0)
+describe('estimateChatGptTokens', () => {
+  it('returns 0 for empty or whitespace-only text', () => {
+    expect(estimateChatGptTokens('')).toBe(0)
+    expect(estimateChatGptTokens('   ')).toBe(0)
   })
 
-  it('matches the known o200k_base token count for a simple string', () => {
-    // "Hello, world!" is a stable, well-known 4-token sequence under o200k_base.
-    expect(countChatGptTokens('Hello, world!')).toBe(4)
+  it('returns at least 1 for any non-empty text', () => {
+    expect(estimateChatGptTokens('a')).toBeGreaterThanOrEqual(1)
   })
 
   it('grows with longer input', () => {
-    const short = countChatGptTokens('The quick brown fox.')
-    const long = countChatGptTokens('The quick brown fox jumps over the lazy dog, again and again.')
+    const short = estimateChatGptTokens('The quick brown fox.')
+    const long = estimateChatGptTokens('The quick brown fox jumps over the lazy dog, again and again.')
     expect(long).toBeGreaterThan(short)
   })
 })
@@ -32,16 +32,6 @@ describe('estimateClaudeTokens', () => {
     const short = estimateClaudeTokens('The quick brown fox.')
     const long = estimateClaudeTokens('The quick brown fox jumps over the lazy dog, again and again.')
     expect(long).toBeGreaterThan(short)
-  })
-
-  it('is in the same rough order of magnitude as the exact GPT count', () => {
-    const text = 'DevDeck is a client-side browser toolbox with small dev-utility widgets for everyday developer tasks.'
-    const gpt = countChatGptTokens(text)
-    const claude = estimateClaudeTokens(text)
-    // Not asserting equality (Claude's real tokenizer differs from GPT's),
-    // just that the estimate isn't wildly off for ordinary English prose.
-    expect(claude).toBeGreaterThan(gpt * 0.5)
-    expect(claude).toBeLessThan(gpt * 2)
   })
 })
 

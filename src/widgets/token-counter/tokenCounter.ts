@@ -1,28 +1,30 @@
 /** Pure counting logic for the Token Counter widget. No React here so it
  * can be unit-tested and reused without a DOM. */
 
-import { countTokens } from 'gpt-tokenizer'
-
-/** Exact token count using the same BPE tokenizer (o200k_base) current
- * ChatGPT models (GPT-4o, GPT-5) actually use. Runs entirely client-side,
- * no API call. */
-export function countChatGptTokens(text: string): number {
-  if (!text) return 0
-  return countTokens(text)
-}
-
-/** Anthropic doesn't publish Claude's tokenizer, and the only way to get an
- * exact count is the `count_tokens` API endpoint (requires a key and a
- * network call). This is a rough, provider-agnostic estimate instead:
- * it blends a word-based guess (~1.3 tokens/word for English prose) with
- * a character-based guess (~4 chars/token), which keeps it reasonable
- * across both prose and code-like text without pretending to be exact. */
-export function estimateClaudeTokens(text: string): number {
+/** Neither OpenAI nor Anthropic publish a tokenizer that can run fully
+ * offline for every current model (OpenAI's real BPE tables exist but are
+ * hundreds of KB to megabytes each; Anthropic doesn't publish one at all),
+ * and DevDeck widgets don't call out to an API or ship a key. So both
+ * counts below are the same kind of rough, provider-agnostic estimate:
+ * a blend of a word-based guess (~1.3 tokens/word for English prose) and
+ * a character-based guess (~4 chars/token), which stays reasonable across
+ * prose and code-like text without pretending to be exact. */
+function estimateTokens(text: string): number {
   if (!text.trim()) return 0
   const wordCount = text.split(/\s+/).filter(Boolean).length
   const byWords = wordCount * 1.3
   const byChars = text.length / 4
   return Math.max(1, Math.round((byWords + byChars) / 2))
+}
+
+/** Rough estimate of ChatGPT (GPT) token usage. Not the real tokenizer. */
+export function estimateChatGptTokens(text: string): number {
+  return estimateTokens(text)
+}
+
+/** Rough estimate of Claude token usage. Not the real tokenizer. */
+export function estimateClaudeTokens(text: string): number {
+  return estimateTokens(text)
 }
 
 export interface TextStats {

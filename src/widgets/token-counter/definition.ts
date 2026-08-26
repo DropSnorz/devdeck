@@ -5,7 +5,7 @@ import type { WidgetDefinition } from '@/widgets/types'
 export const tokenCounterDefinition: WidgetDefinition = {
   id: 'token-counter',
   name: 'Token Counter',
-  description: 'Count exact ChatGPT tokens and an estimated Claude token count for a prompt, no API key needed',
+  description: 'Estimate ChatGPT and Claude token counts for a prompt from word/character counts, no API key needed',
   category: 'ai',
   icon: Calculator,
   defaultSize: { w: 4, h: 4 },
@@ -24,8 +24,6 @@ export const tokenCounterDefinition: WidgetDefinition = {
     'anthropic',
     'prompt length',
     'context window',
-    'bpe',
-    'o200k',
-    'cl100k',
+    'estimate',
   ],
 }
