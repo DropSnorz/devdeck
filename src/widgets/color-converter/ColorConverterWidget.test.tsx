@@ -17,12 +17,12 @@ function hslField() {
 }
 
 describe('ColorConverterWidget', () => {
-  it('starts at the default blue, with hex/rgb/hsl all in sync', () => {
+  it('starts at the default signal green, with hex/rgb/hsl all in sync', () => {
     render(<ColorConverterWidget instanceId="test" mode="grid" />)
 
-    expect(hexField()).toHaveValue('#3b82f6')
-    expect(rgbField()).toHaveValue('rgb(59, 130, 246)')
-    expect(hslField()).toHaveValue('hsl(217, 91%, 60%)')
+    expect(hexField()).toHaveValue('#36cea4')
+    expect(rgbField()).toHaveValue('rgb(54, 206, 164)')
+    expect(hslField()).toHaveValue('hsl(163, 61%, 51%)')
   })
 
   it('typing a new hex value updates rgb and hsl to match', async () => {

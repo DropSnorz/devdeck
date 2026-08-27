@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/devdeck/',
+  base: '/localgrid.dev/',
   plugins: [
     react(),
     tailwindcss(),
@@ -14,11 +14,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'DevDeck',
-        short_name: 'DevDeck',
+        name: 'localgrid.dev',
+        short_name: 'localgrid',
         description: 'A client-side browser toolbox for developers',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#0e0f12',
+        background_color: '#0e0f12',
         display: 'standalone',
         icons: [
           {

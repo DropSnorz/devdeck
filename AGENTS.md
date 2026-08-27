@@ -1,6 +1,6 @@
 # AGENTS.md
 
-DevDeck is a client-side browser toolbox: a dashboard of small dev-utility widgets (Base64, JSON formatting, JWT tools, color conversion, hashing, etc.). React 19 + Vite + TypeScript + Tailwind v4 + Zustand. No backend, everything runs in the browser.
+localgrid is a client-side browser toolbox: a dashboard of small dev-utility widgets (Base64, JSON formatting, JWT tools, color conversion, hashing, etc.). React 19 + Vite + TypeScript + Tailwind v4 + Zustand. No backend, everything runs in the browser.
 
 ## Important instructions
 

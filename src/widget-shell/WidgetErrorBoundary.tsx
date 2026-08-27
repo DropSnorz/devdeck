@@ -19,7 +19,7 @@ export class WidgetErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: unknown) {
-    console.error(`[DevDeck] widget "${this.props.widgetName}" crashed:`, error)
+    console.error(`[localgrid] widget "${this.props.widgetName}" crashed:`, error)
   }
 
   render() {

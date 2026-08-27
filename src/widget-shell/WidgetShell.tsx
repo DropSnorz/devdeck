@@ -61,7 +61,7 @@ export function WidgetShell({
           {isDirty && (
             <span
               aria-hidden="true"
-              className="size-1.5 shrink-0 animate-pulse rounded-full bg-blue-500"
+              className="size-1.5 shrink-0 animate-pulse rounded-full bg-success"
             />
           )}
         </span>

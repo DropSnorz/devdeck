@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { LayoutGrid, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { cn } from '@/lib/cn'
+import { Logomark } from '@/components/Logomark'
 import { WidgetSidebar } from '@/sidebar/WidgetSidebar'
 import { useSidebarStore } from '@/sidebar/useSidebarStore'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
@@ -69,9 +70,9 @@ export function Dashboard() {
           </button>
           {!sidebarCollapsed && (
             <div className="flex items-center gap-1.5 px-1">
-              <LayoutGrid className="size-5 shrink-0 text-foreground" />
-              <span className="text-base font-semibold tracking-tight">
-                DevDeck
+              <Logomark className="size-5 text-foreground" />
+              <span className="font-mono text-base font-medium tracking-tight">
+                localgrid<span className="text-muted-foreground">.dev</span>
               </span>
             </div>
           )}

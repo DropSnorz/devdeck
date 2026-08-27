@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-const STORAGE_KEY = 'devdeck.sidebar-collapsed'
+const STORAGE_KEY = 'localgrid.sidebar-collapsed'
 
 function readStoredCollapsed(): boolean {
   return window.localStorage.getItem(STORAGE_KEY) === '1'

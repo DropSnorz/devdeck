@@ -27,7 +27,7 @@ import { timerDefinition } from './timer/definition'
 import { contentTypeDetectorDefinition } from './content-type-detector/definition'
 import { yamlJsonConverterDefinition } from './yaml-json-converter/definition'
 
-/** Single source of truth for every widget DevDeck knows about. The
+/** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
 const ALL_WIDGETS: WidgetDefinition[] = [
   uuidGeneratorDefinition,
