@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { cn } from '@/lib/cn'
-import { Logomark } from '@/components/Logomark'
+import { LogoIcon } from '@/components/icons/LogoIcon'
 import { WidgetSidebar } from '@/sidebar/WidgetSidebar'
 import { useSidebarStore } from '@/sidebar/useSidebarStore'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
@@ -73,7 +73,7 @@ export function Dashboard() {
               href={`${import.meta.env.BASE_URL}about.html`}
               className="flex items-center gap-1.5 px-1"
             >
-              <Logomark className="size-5 text-foreground" />
+              <LogoIcon className="size-5 text-foreground" />
               <span className="font-mono text-base font-medium tracking-tight">
                 localgrid<span className="text-muted-foreground">.dev</span>
               </span>

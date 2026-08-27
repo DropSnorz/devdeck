@@ -1,5 +1,5 @@
 import { Download, Laptop, WifiOff, type LucideIcon } from 'lucide-react'
-import { AstreliteMark } from '@/components/AstreliteMark'
+import { AstreliteIcon } from '@/components/icons/AstreliteIcon'
 import { cn } from '@/lib/utils'
 import { groupWidgetsByCategory } from '@/widgets/categories'
 import type { WidgetDefinition } from '@/widgets/types'
@@ -133,7 +133,7 @@ function BrandFooter({ collapsed }: { collapsed: boolean }) {
           collapsed && 'justify-center',
         )}
       >
-        <AstreliteMark className="size-3.5 shrink-0" />
+        <AstreliteIcon className="size-3.5 shrink-0" />
         {!collapsed && (
           <span className="text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
         )}

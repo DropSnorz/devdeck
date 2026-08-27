@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAnyWidgetDirty, useResetWidgets } from '@/widgets/useWidgetDirty'
-import { Logomark } from '@/components/Logomark'
+import { LogoIcon } from '@/components/icons/LogoIcon'
 import { Button } from '@/components/ui/button'
 import { DashboardTabBar } from './DashboardTabBar'
 import { DashboardToolbar } from './DashboardToolbar'
@@ -33,7 +33,7 @@ export function AppHeader() {
       {/* The brand box next to the sidebar carries the logo (and toggle) on
           desktop — it's hidden below md, so show a compact stand-in here
           instead of losing it entirely on mobile. */}
-      <Logomark className="size-5 text-foreground md:hidden" />
+      <LogoIcon className="size-5 text-foreground md:hidden" />
 
       <DashboardTabBar />
 

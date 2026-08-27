@@ -5,8 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // The dashboard (index.html) is the app proper, at BASE. about.html is a
-// second, separate entry — the marketing/About page linked from the
-// dashboard's logo — with its own small bundle (see src/about/). It's a flat
+// second, separate entry (the marketing/About page linked from the
+// dashboard's logo), with its own small bundle (see src/about/). It's a flat
 // sibling file (BASE + 'about.html'), not a nested about/index.html, so the
 // URL is always a literal file with no directory-index/trailing-slash
 // ambiguity to worry about across dev, preview, and GitHub Pages. Both

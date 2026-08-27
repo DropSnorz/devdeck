@@ -82,8 +82,16 @@ export function useAppEditorTheme(isDark: boolean): Extension {
           color: 'var(--color-muted-foreground)',
           border: 'none',
         },
+        // CodeMirror's own base theme gives `.cm-activeLine` a translucent
+        // background on purpose (e.g. `#cceeff44`) because the selection
+        // layer beneath it (`.cm-selectionBackground`) paints at a negative
+        // z-index, behind line content, specifically so an app's active-line
+        // color can still let it show through. An opaque fill here would sit
+        // above that layer and hide it completely — invisible-selection bug
+        // — so this has to stay translucent too via color-mix rather than a
+        // flat `var(--color-muted)`.
         '.cm-activeLine, .cm-activeLineGutter': {
-          backgroundColor: 'var(--color-muted)',
+          backgroundColor: 'color-mix(in oklab, var(--color-muted) 60%, transparent)',
         },
         '.cm-cursor, .cm-dropCursor': {
           borderLeftColor: 'var(--color-foreground)',
@@ -102,7 +110,43 @@ export function useAppEditorTheme(isDark: boolean): Extension {
             backgroundColor: 'var(--color-ring)',
             opacity: 0.35,
           },
-        '.cm-searchMatch': { backgroundColor: 'var(--color-highlight)' },
+        // Same wash/outline treatment as .cm-selectionMatch below, but on
+        // amber so search hits read as a distinct kind of highlight rather
+        // than more of the same ring-blue. --color-highlight itself (amber-200
+        // light / amber-500 dark) is tuned for a solid fill, not a diluted
+        // mix — amber-200 mixed down further nearly disappears on white — so
+        // this uses the amber-600/400 pair instead, the same contrast-tuned
+        // shades the JSON string color above already uses per theme.
+        '.cm-searchMatch': {
+          backgroundColor: `color-mix(in oklab, var(${isDark ? '--color-amber-400' : '--color-amber-600'}) 30%, transparent)`,
+          outline: `1px solid var(${isDark ? '--color-amber-400' : '--color-amber-600'})`,
+          borderRadius: '2px',
+        },
+        '.cm-searchMatch-selected': {
+          backgroundColor: `color-mix(in oklab, var(${isDark ? '--color-amber-400' : '--color-amber-600'}) 60%, transparent)`,
+        },
+        // Override highlightSelectionMatches' default lime-green fill
+        // (#99ff7780) with a wash/outline in the same --color-ring already
+        // used for the live selection, so it doesn't fight syntax colors.
+        '.cm-selectionMatch': {
+          backgroundColor: 'color-mix(in oklab, var(--color-ring) 20%, transparent)',
+          outline: '1px solid color-mix(in oklab, var(--color-ring) 45%, transparent)',
+          borderRadius: '2px',
+        },
+        // Same idea for bracket matching's default teal/red fill. Its base
+        // rule is scoped under &.cm-focused, which out-specifies a plain
+        // .cm-matchingBracket override, so match it selector-for-selector
+        // like the focused selection rule above.
+        '&.cm-focused .cm-matchingBracket': {
+          backgroundColor: 'transparent',
+          outline: '1px solid color-mix(in oklab, var(--color-foreground) 35%, transparent)',
+          borderRadius: '2px',
+        },
+        '&.cm-focused .cm-nonmatchingBracket': {
+          backgroundColor: 'transparent',
+          outline: '1px solid color-mix(in oklab, var(--color-destructive) 55%, transparent)',
+          borderRadius: '2px',
+        },
         // The search/replace panel (@codemirror/search's SearchPanel) is
         // built from plain, unstyled <input>/<button>/<label> elements —
         // these rules restyle its exact DOM (confirmed against that

@@ -1,7 +1,7 @@
 /** The Astrelite brand mark — same path data as astrelite.com's own
  * favicon/wordmark lockup, recolored via `currentColor` instead of a fixed
  * white/black so it follows this app's own light/dark theme. */
-export function AstreliteMark({ className }: { className?: string }) {
+export function AstreliteIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 104 94"
