@@ -69,12 +69,15 @@ export function Dashboard() {
             )}
           </button>
           {!sidebarCollapsed && (
-            <div className="flex items-center gap-1.5 px-1">
+            <a
+              href={`${import.meta.env.BASE_URL}about.html`}
+              className="flex items-center gap-1.5 px-1"
+            >
               <Logomark className="size-5 text-foreground" />
               <span className="font-mono text-base font-medium tracking-tight">
                 localgrid<span className="text-muted-foreground">.dev</span>
               </span>
-            </div>
+            </a>
           )}
         </div>
         <AppHeader />

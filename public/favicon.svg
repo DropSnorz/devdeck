@@ -3,5 +3,5 @@
   <rect x="18" y="18" width="41" height="41" rx="4" fill="#f4f5f6"/>
   <rect x="64" y="18" width="18" height="41" rx="4" fill="#f4f5f6" opacity=".5"/>
   <rect x="18" y="64" width="41" height="18" rx="4" fill="#f4f5f6" opacity=".5"/>
-  <rect x="64" y="64" width="18" height="18" rx="4" fill="#00c292"/>
+  <rect x="64" y="64" width="18" height="18" rx="4" fill="#65a1fe"/>
 </svg>

@@ -7,14 +7,15 @@
  * query directly, so an explicit light/dark choice can override it. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Semantic color tokens — see the localgrid brand board for the palette
- * these resolve to (a near-monochrome neutral scale plus one signal accent).
- * `success` and `highlight` are app-specific additions beyond shadcn's
- * default roles, covering ExpiryBadge's green states and
- * RegexTesterWidget's <mark> highlight. `success`/`destructive` are base
- * saturated colors, not pre-lightened tints, so both solid-fill uses
- * (bg-success text-success-foreground) and soft/tinted uses (bg-success/15
- * text-success) derive from the same token via Tailwind's opacity modifier. */
+/* Semantic color tokens, mapped onto Tailwind's own slate scale (see
+ * components.json's `baseColor: "slate"`) so every literal `slate-*`/`red-*`
+ * class already used across the app has a matching semantic name. `success`
+ * and `highlight` are app-specific additions beyond shadcn's default roles,
+ * covering ExpiryBadge's green states and RegexTesterWidget's <mark>
+ * highlight. `success`/`destructive` are base saturated colors, not
+ * pre-lightened tints, so both solid-fill uses (bg-success text-success-
+ * foreground) and soft/tinted uses (bg-success/15 text-success) derive from
+ * the same token via Tailwind's opacity modifier. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -46,77 +47,81 @@
 @theme {
   --font-sans: 'IBM Plex Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  /* Tailwind's default --font-weight-medium (500) is what `font-medium`
+   * resolves to — widely used across the app for labels/headings — but IBM
+   * Plex Sans's Medium (500) cut reads noticeably heavier than most
+   * system-UI fonts' 500. Map it down to Regular (400) instead, so
+   * `font-medium` stays visually "a step up from normal text" without
+   * IBM Plex Sans's specific 500 cut making it look bold. */
+  --font-weight-medium: 400;
   --animate-dirty-pulse: dirty-pulse 2s ease-in-out infinite;
 }
 
 /* Widget "dirty" indicator (see src/widgets/useWidgetDirty.ts) — a soft
  * border/glow pulse rather than Tailwind's stock `animate-pulse`, which
- * animates opacity and would fade the widget's own content along with it.
- * One of the few spots that reaches for the brand's signal accent (see
- * `--success`) rather than the neutral scale — this is exactly the "live
- * local state" the accent exists for. */
+ * animates opacity and would fade the widget's own content along with it. */
 @keyframes dirty-pulse {
   0%,
   100% {
-    border-color: oklch(0.78 0.15 168);
-    box-shadow: 0 0 0 0 oklch(0.78 0.15 168 / 0.35);
+    border-color: var(--color-blue-400);
+    box-shadow: 0 0 0 0 rgb(96 165 250 / 0.35);
   }
   50% {
-    border-color: oklch(0.72 0.15 168);
-    box-shadow: 0 0 0 3px oklch(0.72 0.15 168 / 0);
+    border-color: var(--color-blue-500);
+    box-shadow: 0 0 0 3px rgb(96 165 250 / 0);
   }
 }
 
 :root {
   color-scheme: light dark;
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.002 260);
-  --foreground: oklch(0.21 0.01 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.01 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.01 260);
-  --primary: oklch(0.21 0.01 260);
-  --primary-foreground: oklch(0.985 0.002 260);
-  --secondary: oklch(0.955 0.003 260);
-  --secondary-foreground: oklch(0.28 0.01 260);
-  --muted: oklch(0.955 0.003 260);
-  --muted-foreground: oklch(0.52 0.01 262);
-  --accent: oklch(0.955 0.003 260);
-  --accent-foreground: oklch(0.21 0.01 260);
-  --destructive: oklch(0.6 0.18 22);
-  --destructive-foreground: oklch(0.985 0.002 260);
-  --success: oklch(0.55 0.11 168);
-  --success-foreground: oklch(0.985 0.002 260);
-  --highlight: oklch(0.9 0.09 55);
-  --border: oklch(0.92 0.004 260);
-  --input: oklch(0.92 0.004 260);
-  --ring: oklch(0.62 0.008 263);
+  --radius: 0.375rem;
+  --background: var(--color-slate-50);
+  --foreground: var(--color-slate-900);
+  --card: var(--color-white);
+  --card-foreground: var(--color-slate-900);
+  --popover: var(--color-white);
+  --popover-foreground: var(--color-slate-900);
+  --primary: var(--color-slate-900);
+  --primary-foreground: var(--color-white);
+  --secondary: var(--color-slate-100);
+  --secondary-foreground: var(--color-slate-900);
+  --muted: var(--color-slate-100);
+  --muted-foreground: var(--color-slate-500);
+  --accent: var(--color-slate-100);
+  --accent-foreground: var(--color-slate-900);
+  --destructive: var(--color-red-600);
+  --destructive-foreground: var(--color-white);
+  --success: var(--color-green-600);
+  --success-foreground: var(--color-white);
+  --highlight: var(--color-amber-200);
+  --border: var(--color-slate-200);
+  --input: var(--color-slate-300);
+  --ring: var(--color-slate-500);
 }
 
 .dark {
-  --background: oklch(0.17 0.006 265);
-  --foreground: oklch(0.97 0.002 260);
-  --card: oklch(0.2 0.006 265);
-  --card-foreground: oklch(0.97 0.002 260);
-  --popover: oklch(0.22 0.006 265);
-  --popover-foreground: oklch(0.97 0.002 260);
-  --primary: oklch(0.97 0.002 260);
-  --primary-foreground: oklch(0.17 0.006 265);
-  --secondary: oklch(0.24 0.007 265);
-  --secondary-foreground: oklch(0.93 0.002 260);
-  --muted: oklch(0.24 0.007 265);
-  --muted-foreground: oklch(0.66 0.01 265);
-  --accent: oklch(0.24 0.007 265);
-  --accent-foreground: oklch(0.97 0.002 260);
-  --destructive: oklch(0.65 0.18 22);
-  --destructive-foreground: oklch(0.17 0.006 265);
-  --success: oklch(0.78 0.15 168);
-  --success-foreground: oklch(0.22 0.04 168);
-  --highlight: oklch(0.7 0.14 55);
-  --border: oklch(0.27 0.008 265);
-  --input: oklch(0.29 0.008 265);
-  --ring: oklch(0.62 0.008 263);
+  --background: var(--color-slate-950);
+  --foreground: var(--color-slate-100);
+  --card: var(--color-slate-900);
+  --card-foreground: var(--color-slate-100);
+  --popover: var(--color-slate-900);
+  --popover-foreground: var(--color-slate-100);
+  --primary: var(--color-slate-100);
+  --primary-foreground: var(--color-slate-900);
+  --secondary: var(--color-slate-800);
+  --secondary-foreground: var(--color-slate-100);
+  --muted: var(--color-slate-800);
+  --muted-foreground: var(--color-slate-400);
+  --accent: var(--color-slate-800);
+  --accent-foreground: var(--color-slate-100);
+  --destructive: var(--color-red-500);
+  --destructive-foreground: var(--color-white);
+  --success: var(--color-green-500);
+  --success-foreground: var(--color-white);
+  --highlight: var(--color-amber-500);
+  --border: var(--color-slate-800);
+  --input: var(--color-slate-700);
+  --ring: var(--color-slate-500);
 }
 
 body {

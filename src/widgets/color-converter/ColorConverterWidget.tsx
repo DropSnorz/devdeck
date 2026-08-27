@@ -9,7 +9,7 @@ import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
-const INITIAL = colord('#36cea4')
+const INITIAL = colord('#65a1fe')
 
 function formatRgb(c: Colord): string {
   const { r, g, b, a } = c.toRgb()
