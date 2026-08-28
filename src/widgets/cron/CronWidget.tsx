@@ -40,13 +40,23 @@ function formatAbsolute(date: Date): string {
   return `${weekday} ${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-export default function CronWidget({ instanceId }: WidgetProps) {
+interface CronWidgetProps extends WidgetProps {
+  /** Overrides the widget's usual "every 5 minutes" starting point. Only
+   * meant for the About page's live preview (see src/about/AboutPage.tsx),
+   * which remounts the widget with a new expression on an interval; real
+   * dashboard/registry usage never passes this, so the fallback (
+   * DEFAULT_EXPRESSION) is unchanged. */
+  initialExpression?: string
+}
+
+export default function CronWidget({ instanceId, initialExpression }: CronWidgetProps) {
+  const startingExpression = initialExpression ?? DEFAULT_EXPRESSION
   const [expression, setExpression] = useWidgetState(
     instanceId,
     'expression',
-    DEFAULT_EXPRESSION,
+    startingExpression,
   )
-  useWidgetDirty(instanceId, expression !== DEFAULT_EXPRESSION)
+  useWidgetDirty(instanceId, expression !== startingExpression)
   const expressionFieldId = useId()
 
   // Ticks once a second purely to keep the "in 2d" / "in 5s" labels (and the

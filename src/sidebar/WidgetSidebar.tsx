@@ -1,4 +1,5 @@
 import { Download, Laptop, WifiOff, type LucideIcon } from 'lucide-react'
+import { AstreliteIcon } from '@/components/icons/AstreliteIcon'
 import { cn } from '@/lib/utils'
 import { groupWidgetsByCategory } from '@/widgets/categories'
 import type { WidgetDefinition } from '@/widgets/types'
@@ -132,7 +133,7 @@ function BrandFooter({ collapsed }: { collapsed: boolean }) {
           collapsed && 'justify-center',
         )}
       >
-        <AstreliteMark className="size-3.5 shrink-0" />
+        <AstreliteIcon className="size-3.5 shrink-0" />
         {!collapsed && (
           <span className="text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
         )}
@@ -164,26 +165,5 @@ function CapabilityBadge({
       <Icon className="size-3 shrink-0" />
       {!collapsed && <span>{label}</span>}
     </div>
-  )
-}
-
-/** The Astrelite brand mark — same path data as astrelite.com's own
- * favicon/wordmark lockup, recolored via `currentColor` instead of a fixed
- * white/black so it follows this app's own light/dark theme. */
-function AstreliteMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 104 94"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={5}
-      strokeLinejoin="miter"
-      strokeMiterlimit={8}
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M58 4 L96 44 L66 90 L18 72 L8 30 Z" />
-      <path d="M42 44 L58 4 M42 44 L96 44 M42 44 L18 72" />
-    </svg>
   )
 }

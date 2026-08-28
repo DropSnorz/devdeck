@@ -53,7 +53,7 @@ export function ShareModal({ open, onClose }: ShareModalProps) {
     const canvas = qrContainerRef.current?.querySelector('canvas')
     if (!canvas) return
     const link = document.createElement('a')
-    link.download = 'devdeck-dashboard-qr.png'
+    link.download = 'localgrid-dashboard-qr.png'
     link.href = canvas.toDataURL('image/png')
     link.click()
   }

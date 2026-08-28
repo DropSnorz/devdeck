@@ -1,32 +1,32 @@
 <div align="center">
 
-# DevDeck
+![localgrid.dev](./docs/localgrid-banner.png)
 
 **A browser-based dashboard for everyday developer tools.**
 
 Base64, JSON, JWTs, hashing, colors, regex, and more, pinned side by side on one
 customizable, shareable screen instead of scattered across two dozen browser tabs.
 
-[**Live demo**](https://dropsnorz.github.io/devdeck/) · [Report a bug](https://github.com/DropSnorz/devdeck/issues)
+[**Live demo**](https://dropsnorz.github.io/localgrid.dev/) · [Report a bug](https://github.com/DropSnorz/localgrid.dev/issues)
 
-[![Deploy](https://img.shields.io/github/actions/workflow/status/DropSnorz/devdeck/pages.yml?branch=main&label=deploy)](https://github.com/DropSnorz/devdeck/actions/workflows/pages.yml)
+[![Deploy](https://img.shields.io/github/actions/workflow/status/DropSnorz/localgrid.dev/pages.yml?branch=main&label=deploy)](https://github.com/DropSnorz/localgrid.dev/actions/workflows/pages.yml)
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)
-![PWA](https://img.shields.io/badge/PWA-installable-5a0fc8?logo=pwa&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-36cea4)
 
 </div>
 
 ---
 
-## Why DevDeck
+## Why localgrid
 
 Plenty of good developer-utility sites already exist, covering Base64, JSON, colors,
 timestamps, JWTs, and everything else on this list. What none of them solve is context
 switching: opening a new tool means a new tab, losing your place, and finding your way back
 to what you were doing. Those small interruptions and context switching add up when you are debugging.
 
-DevDeck instead treats tools as widgets on a persistent dashboard. Pin the five or six you
+localgrid instead treats tools as widgets on a persistent dashboard. Pin the five or six you
 reach for constantly, arrange them however fits your screen, and keep working across all of
 them at once without losing state or hunting for the next tab.
 
@@ -34,7 +34,7 @@ them at once without losing state or hunting for the next tab.
 
 ### Client-side, offline, installable
 
-No backend, no account, nothing you paste ever leaves your browser. DevDeck installs as a
+No backend, no account, nothing you paste ever leaves your browser. localgrid installs as a
 PWA and keeps working without a connection.
 
 ### A layout that's actually yours
@@ -82,7 +82,7 @@ This dashboard-first approach won't be for everyone. It's a deliberate attempt t
 
 | Tool                                                  | Local first | Offline App | Web app | Multi-tools single page | Persistent workspace | License        |
 | ------------------------------------------------------ | :---------: | :---------: | :-----: | :-----------------------: | :------------------: | -------------- |
-| ⭐ **DevDeck**                                            |     🟢       |     🟢       |    🟢    |            🟢              |          🟢           | **TBD**        |
+| ⭐ **Localgrid**                                          |     🟢       |     🟢       |    🟢    |            🟢              |          🟢           | **TBD**        |
 | [DevToys](https://devtoys.app/)                        |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🟢 MIT         |
 | [DevUtils](https://devutils.com/)                      |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🔴 Proprietary |
 | [devutils.sh](https://devutils.sh/)                    |     🟢       |     🟢       |    🟢    |            🔴              |          🔴           | ❓             |
@@ -121,7 +121,7 @@ npm install
 npm run dev
 ```
 
-Or just use the [live demo](https://dropsnorz.github.io/devdeck/), nothing to install.
+Or just use the [live demo](https://dropsnorz.github.io/localgrid.dev/), nothing to install.
 
 ### Available scripts
 

@@ -12,7 +12,7 @@ describe('useThemeStore', () => {
     useThemeStore.getState().setTheme('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.documentElement.style.colorScheme).toBe('dark')
-    expect(window.localStorage.getItem('devdeck.theme')).toBe('dark')
+    expect(window.localStorage.getItem('localgrid.theme')).toBe('dark')
     expect(useThemeStore.getState().theme).toBe('dark')
   })
 

@@ -6,3 +6,21 @@
   background: var(--color-blue-400);
   opacity: 0.3;
 }
+
+/* The resize handle's corner chevron ships hardcoded black in both
+ * libraries: react-resizable/css/styles.css bakes it into a black data-URI
+ * background-image (can't be recolored via CSS, so just remove it), and
+ * react-grid-layout/css/styles.css draws its own via this ::after
+ * border-corner trick (recolorable — swap its hardcoded rgba(0,0,0,.4) for
+ * `--foreground` so it stays visible in dark mode instead of disappearing
+ * against a dark card). Opacity moves from the color's alpha channel to the
+ * pseudo-element itself, for the same subtlety. */
+.react-grid-item > .react-resizable-handle {
+  background-image: none;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  border-right-color: var(--foreground);
+  border-bottom-color: var(--foreground);
+  opacity: 0.4;
+}

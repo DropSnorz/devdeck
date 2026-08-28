@@ -20,8 +20,8 @@ function clamp(next: number, min?: number, max?: number): number {
  * The displayed text is its own state, not a direct mirror of `value` —
  * deliberately, so the field can hold what a clamped number can't: blank
  * while backspacing, or a single leading digit that's below `min` on its
- * own (typing "40" starts at "4"). Clamping on every keystroke instead —
- * the previous approach — meant backspacing a value down to `min` (e.g. 5
+ * own (typing "40" starts at "4"). Clamping on every keystroke
+ * meant backspacing a value down to `min` (e.g. 5
  * to 4 with a min of 4) snapped the field to "4" the instant it went
  * blank, so the very next keystroke (also "4") landed as an append, not a
  * replacement, and produced "44". Text only resyncs from `value` while the

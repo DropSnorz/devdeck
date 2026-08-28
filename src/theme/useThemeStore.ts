@@ -4,7 +4,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 export type Theme = 'light' | 'dark' | 'system'
 
 /** Must match the key the anti-flash bootstrap script in index.html reads. */
-const STORAGE_KEY = 'devdeck.theme'
+const STORAGE_KEY = 'localgrid.theme'
 
 function isTheme(value: string | null): value is Theme {
   return value === 'light' || value === 'dark' || value === 'system'

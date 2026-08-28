@@ -4,9 +4,22 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// The dashboard (index.html) is the app proper, at BASE. about.html is a
+// second, separate entry (the marketing/About page linked from the
+// dashboard's logo), with its own small bundle (see src/about/). It's a flat
+// sibling file (BASE + 'about.html'), not a nested about/index.html, so the
+// URL is always a literal file with no directory-index/trailing-slash
+// ambiguity to worry about across dev, preview, and GitHub Pages. Both
+// entries are declared under build.rollupOptions.input below since Vite's
+// implicit single-entry default is replaced, not extended, once `input` is
+// set.
+// The PWA manifest's start_url is derived from the same BASE rather than
+// hardcoded again, so an installed/home-screen launch opens the dashboard.
+const BASE = '/localgrid.dev/'
+
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/devdeck/',
+  base: BASE,
   plugins: [
     react(),
     tailwindcss(),
@@ -14,9 +27,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'DevDeck',
-        short_name: 'DevDeck',
+        name: 'localgrid.dev',
+        short_name: 'localgrid',
         description: 'A client-side browser toolbox for developers',
+        start_url: BASE,
+        scope: BASE,
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
@@ -34,6 +49,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        about: fileURLToPath(new URL('./about.html', import.meta.url)),
+      },
     },
   },
 })

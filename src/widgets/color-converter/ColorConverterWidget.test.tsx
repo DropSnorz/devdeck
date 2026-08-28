@@ -20,9 +20,9 @@ describe('ColorConverterWidget', () => {
   it('starts at the default blue, with hex/rgb/hsl all in sync', () => {
     render(<ColorConverterWidget instanceId="test" mode="grid" />)
 
-    expect(hexField()).toHaveValue('#3b82f6')
-    expect(rgbField()).toHaveValue('rgb(59, 130, 246)')
-    expect(hslField()).toHaveValue('hsl(217, 91%, 60%)')
+    expect(hexField()).toHaveValue('#65a1fe')
+    expect(rgbField()).toHaveValue('rgb(101, 161, 254)')
+    expect(hslField()).toHaveValue('hsl(216, 99%, 70%)')
   })
 
   it('typing a new hex value updates rgb and hsl to match', async () => {

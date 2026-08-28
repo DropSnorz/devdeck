@@ -16,13 +16,25 @@ import { contrastRatio, evaluateWcag, formatRatio } from './wcagContrast'
 const INITIAL_FG = colord('#000000')
 const INITIAL_BG = colord('#ffffff')
 
-export default function WcagCheckerWidget({ instanceId }: WidgetProps) {
-  const [fg, setFg] = useWidgetState<Colord>(instanceId, 'fg', INITIAL_FG)
-  const [bg, setBg] = useWidgetState<Colord>(instanceId, 'bg', INITIAL_BG)
-  const [fgInput, setFgInput] = useWidgetState(instanceId, 'fgInput', INITIAL_FG.toHex())
-  const [bgInput, setBgInput] = useWidgetState(instanceId, 'bgInput', INITIAL_BG.toHex())
+interface WcagCheckerWidgetProps extends WidgetProps {
+  /** Overrides the widget's usual black-on-white starting point — hex
+   * strings, not Colord, to keep this prop trivially serializable. Only
+   * meant for the About page's live preview (see src/about/AboutPage.tsx),
+   * which remounts the widget with a new pair on an interval; real
+   * dashboard/registry usage never passes these; the fallback is unchanged. */
+  initialFg?: string
+  initialBg?: string
+}
 
-  useWidgetDirty(instanceId, fgInput !== INITIAL_FG.toHex() || bgInput !== INITIAL_BG.toHex())
+export default function WcagCheckerWidget({ instanceId, initialFg, initialBg }: WcagCheckerWidgetProps) {
+  const initialFgColor = initialFg ? colord(initialFg) : INITIAL_FG
+  const initialBgColor = initialBg ? colord(initialBg) : INITIAL_BG
+  const [fg, setFg] = useWidgetState<Colord>(instanceId, 'fg', initialFgColor)
+  const [bg, setBg] = useWidgetState<Colord>(instanceId, 'bg', initialBgColor)
+  const [fgInput, setFgInput] = useWidgetState(instanceId, 'fgInput', initialFgColor.toHex())
+  const [bgInput, setBgInput] = useWidgetState(instanceId, 'bgInput', initialBgColor.toHex())
+
+  useWidgetDirty(instanceId, fgInput !== initialFgColor.toHex() || bgInput !== initialBgColor.toHex())
 
   const handleFgChange = (value: string) => {
     setFgInput(value)
