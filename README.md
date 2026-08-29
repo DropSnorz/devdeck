@@ -66,9 +66,9 @@ always asks before it touches your local dashboard.
 | Formatting | Cron Expression, JSON Formatter, Timestamp Converter, YAML ↔ JSON Converter                |
 | Encoding   | Base64, JWT Encoder, URL Encoder                                                           |
 | Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                         |
-| AI / LLM   | Invisible Character Cleaner, Token Counter                                                 |
 | Text       | Content Type Detector, Emoji Picker, Notes, Regex Tester, Text Case Converter, Text Diff    |
 | Math       | Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
+| AI / LLM   | Invisible Character Cleaner, Token Counter                                                 |
 | Color      | Color Converter, WCAG Contrast Checker                                                     |
 | Network    | Subnet Calculator                                                                          |
 | Time       | Timer                                                                                       |

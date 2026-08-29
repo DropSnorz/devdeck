@@ -1,6 +1,15 @@
 /** Pure counting logic for the Token Counter widget. No React here so it
  * can be unit-tested and reused without a DOM. */
 
+/** Counts Unicode code points rather than UTF-16 code units, so a
+ * surrogate-pair character like an emoji counts as one character instead
+ * of two (`"😀".length` is 2; `codePointLength("😀")` is 1). Used by both
+ * `countTextStats` and `estimateTokens` so the two never disagree on what
+ * counts as a "character". */
+function codePointLength(text: string): number {
+  return Array.from(text).length
+}
+
 /** Neither OpenAI nor Anthropic publish a tokenizer that can run fully
  * offline for every current model (OpenAI's real BPE tables exist but are
  * hundreds of KB to megabytes each; Anthropic doesn't publish one at all),
@@ -13,7 +22,7 @@ export function estimateTokens(text: string): number {
   if (!text.trim()) return 0
   const wordCount = text.split(/\s+/).filter(Boolean).length
   const byWords = wordCount * 1.3
-  const byChars = text.length / 4
+  const byChars = codePointLength(text) / 4
   return Math.max(1, Math.round((byWords + byChars) / 2))
 }
 
@@ -24,7 +33,7 @@ export interface TextStats {
 
 export function countTextStats(text: string): TextStats {
   return {
-    characters: text.length,
+    characters: codePointLength(text),
     words: text.trim() ? text.trim().split(/\s+/).length : 0,
   }
 }

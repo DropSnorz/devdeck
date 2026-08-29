@@ -16,6 +16,12 @@ describe('estimateTokens', () => {
     const long = estimateTokens('The quick brown fox jumps over the lazy dog, again and again.')
     expect(long).toBeGreaterThan(short)
   })
+
+  it('counts a surrogate-pair emoji as one character worth of byChars, not two', () => {
+    // "😀" is a single Unicode code point but two UTF-16 code units, so a
+    // naive text.length-based estimate would double-count it.
+    expect(estimateTokens('😀')).toBe(estimateTokens('a'))
+  })
 })
 
 describe('countTextStats', () => {
@@ -30,5 +36,10 @@ describe('countTextStats', () => {
 
   it('collapses repeated whitespace when counting words', () => {
     expect(countTextStats('a   b\n\nc').words).toBe(3)
+  })
+
+  it('counts a surrogate-pair emoji as one character, not two UTF-16 code units', () => {
+    expect(countTextStats('😀').characters).toBe(1)
+    expect(countTextStats('😀😀').characters).toBe(2)
   })
 })
