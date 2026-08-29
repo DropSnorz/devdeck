@@ -58,7 +58,7 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-27 tools across 9 categories, and growing.
+29 tools across 10 categories, and growing.
 
 | Category   | Widgets                                                                                  |
 | ---------- | ----------------------------------------------------------------------------------------- |
@@ -68,6 +68,7 @@ always asks before it touches your local dashboard.
 | Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                         |
 | Text       | Content Type Detector, Emoji Picker, Notes, Regex Tester, Text Case Converter, Text Diff    |
 | Math       | Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
+| AI / LLM   | Invisible Character Cleaner, Token Counter                                                 |
 | Color      | Color Converter, WCAG Contrast Checker                                                     |
 | Network    | Subnet Calculator                                                                          |
 | Time       | Timer                                                                                       |
