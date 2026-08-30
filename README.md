@@ -13,7 +13,7 @@ customizable, shareable screen instead of scattered across two dozen browser tab
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)
-![PWA](https://img.shields.io/badge/PWA-installable-36cea4)
+![PWA](https://img.shields.io/badge/PWA-installable-65a1fe)
 
 </div>
 
@@ -79,7 +79,7 @@ There are already plenty of great developer utility tools out there, covering ev
 
 This dashboard-first approach won't be for everyone. It's a deliberate attempt to stand apart from the alternatives below.
 
-*Worth a look before building a new one.*
+*Worth a look before building a new one 👀*
 
 | Tool                                                  | Local first | Offline App | Web app | Multi-tools single page | Persistent workspace | License        |
 | ------------------------------------------------------ | :---------: | :---------: | :-----: | :-----------------------: | :------------------: | -------------- |

@@ -33,6 +33,12 @@ export interface CodeEditorProps {
    * <label>, so give it an accessible name directly — also doubles as the
    * query hook tests use via getByRole('textbox', { name }). */
   'aria-label'?: string
+  /** Escape hatch for a widget-specific extension (e.g. log-viewer's
+   * regex-based pattern highlighting) that doesn't belong in the shared
+   * `LANGUAGE_EXTENSIONS` map above since only one widget needs it. Appended
+   * after the language extensions, so it can freely add its own decorations
+   * without needing to know what `language` resolved to. */
+  extraExtensions?: Extension[]
 }
 
 /** Built from the same CSS custom properties index.css defines (via
@@ -267,7 +273,7 @@ export function useAppEditorTheme(isDark: boolean): Extension {
  * across many pinned widgets at once (see the JSON Formatter output pane). */
 export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(
   function CodeEditor(
-    { value, onChange, language, readOnly, placeholder, className, 'aria-label': ariaLabel },
+    { value, onChange, language, readOnly, placeholder, className, 'aria-label': ariaLabel, extraExtensions },
     ref,
   ) {
     const isDark = useIsDarkTheme()
@@ -290,8 +296,11 @@ export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(
       if (ariaLabel) {
         exts.push(EditorView.contentAttributes.of({ 'aria-label': ariaLabel }))
       }
+      if (extraExtensions) {
+        exts.push(...extraExtensions)
+      }
       return exts
-    }, [language, ariaLabel])
+    }, [language, ariaLabel, extraExtensions])
 
     return (
       <div
