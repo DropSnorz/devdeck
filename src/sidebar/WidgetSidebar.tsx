@@ -1,11 +1,27 @@
-import { Download, Laptop, WifiOff, type LucideIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Download, Laptop, ListFilter, WifiOff, type LucideIcon } from 'lucide-react'
 import { AstreliteIcon } from '@/components/icons/AstreliteIcon'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { groupWidgetsByCategory } from '@/widgets/categories'
+import { WIDGET_LIST } from '@/widgets/registry'
 import type { WidgetDefinition } from '@/widgets/types'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
 import { useSidebarStore } from './useSidebarStore'
 import { useWidgetDragStore } from './useWidgetDragStore'
+
+/** True if a widget matches a search query — checked against its name,
+ * description, and search keywords, same fields the command palette
+ * searches. */
+function matchesQuery(widget: WidgetDefinition, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  return (
+    widget.name.toLowerCase().includes(q) ||
+    widget.description.toLowerCase().includes(q) ||
+    (widget.keywords?.some((keyword) => keyword.toLowerCase().includes(q)) ?? false)
+  )
+}
 
 /** Always-visible catalog of every widget, grouped by category — the
  * "browse and reach for a tool" counterpart to the command palette. Click
@@ -16,10 +32,18 @@ import { useWidgetDragStore } from './useWidgetDragStore'
  *
  * Sits below the app header, alongside the main content — collapsed state
  * is toggled from a button in that header (see AppHeader), not from within
- * the sidebar itself. */
+ * the sidebar itself. The search box only makes sense expanded — there's no
+ * room for it in the icon-only collapsed rail, so it's hidden there and the
+ * list falls back to showing every widget. */
 export function WidgetSidebar() {
   const collapsed = useSidebarStore((state) => state.collapsed)
-  const groups = groupWidgetsByCategory()
+  const [query, setQuery] = useState('')
+
+  const filteredWidgets = useMemo(
+    () => (collapsed ? WIDGET_LIST : WIDGET_LIST.filter((widget) => matchesQuery(widget, query))),
+    [collapsed, query],
+  )
+  const groups = useMemo(() => groupWidgetsByCategory(filteredWidgets), [filteredWidgets])
 
   return (
     <aside
@@ -28,27 +52,46 @@ export function WidgetSidebar() {
         collapsed ? 'w-14' : 'w-60',
       )}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        <div className="space-y-3">
-          {groups.map((group) => (
-            <div key={group.category}>
-              {!collapsed && (
-                <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {group.label}
-                </p>
-              )}
-              <ul className="space-y-0.5">
-                {group.widgets.map((widget) => (
-                  <SidebarWidgetItem
-                    key={widget.id}
-                    widget={widget}
-                    collapsed={collapsed}
-                  />
-                ))}
-              </ul>
-            </div>
-          ))}
+      {!collapsed && (
+        <div className="shrink-0 border-b border-border p-2">
+          <div className="relative">
+            <ListFilter className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter tools..."
+              aria-label="Filter tools"
+              className="h-7 pl-7 text-xs"
+            />
+          </div>
         </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        {groups.length === 0 ? (
+          <p className="px-1 py-2 text-center text-xs text-muted-foreground">No tools found</p>
+        ) : (
+          <div className="space-y-3">
+            {groups.map((group) => (
+              <div key={group.category}>
+                {!collapsed && (
+                  <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {group.label}
+                  </p>
+                )}
+                <ul className="space-y-0.5">
+                  {group.widgets.map((widget) => (
+                    <SidebarWidgetItem
+                      key={widget.id}
+                      widget={widget}
+                      collapsed={collapsed}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <BrandFooter collapsed={collapsed} />
