@@ -18,7 +18,11 @@ describe('useShareLinkBootstrap', () => {
 
     const { result } = renderHook(() => useShareLinkBootstrap())
 
-    expect(result.current.pendingWorkspace?.dashboards).toEqual(DASHBOARDS)
+    // instanceId isn't carried over the wire — see layoutCodec.ts — so the
+    // decoded widget gets a freshly minted one rather than the original 'a'.
+    expect(result.current.pendingWorkspace?.dashboards).toMatchObject([
+      { id: 'dash-a', name: 'Dash A', widgets: [{ widgetId: 'base64', x: 0, y: 0, w: 2, h: 2 }] },
+    ])
     expect(result.current.pendingWorkspace?.activeDashboardId).toBe('dash-a')
     // Never left sitting in the URL — matches the query-param behavior this
     // replaces, just off window.location.hash instead of .search now.

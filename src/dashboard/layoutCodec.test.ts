@@ -19,15 +19,29 @@ const DASHBOARDS: Dashboard[] = [
   },
 ]
 
+/** Strips `instanceId` — the wire format never carries it (see
+ * layoutCodec.ts), so a round-tripped workspace gets fresh ones and can
+ * only be compared on everything else. */
+function withoutInstanceIds(dashboards: Dashboard[]) {
+  return dashboards.map((dashboard) => ({
+    ...dashboard,
+    widgets: dashboard.widgets.map(({ instanceId: _instanceId, ...rest }) => rest),
+  }))
+}
+
 describe('layoutCodec — workspace (multi-dashboard)', () => {
-  it('round-trips a workspace through encode/decode unchanged', () => {
+  it('round-trips a workspace through encode/decode, minting a fresh instanceId per widget', () => {
     const result = decodeWorkspace(encodeWorkspace(DASHBOARDS, 'dash-a'))
     expect(result.ok).toBe(true)
-    if (result.ok) {
-      expect(result.workspace.dashboards).toEqual(DASHBOARDS)
-      expect(result.workspace.activeDashboardId).toBe('dash-a')
-      expect(result.workspace.version).toBe(2)
-    }
+    if (!result.ok) return
+
+    expect(withoutInstanceIds(result.workspace.dashboards)).toEqual(withoutInstanceIds(DASHBOARDS))
+    expect(result.workspace.activeDashboardId).toBe('dash-a')
+    expect(result.workspace.version).toBe(2)
+
+    const instanceIds = result.workspace.dashboards.flatMap((d) => d.widgets.map((w) => w.instanceId))
+    expect(new Set(instanceIds).size).toBe(instanceIds.length)
+    expect(instanceIds).not.toContain('a')
   })
 
   it('silently drops instances referencing an unknown widget id', () => {
@@ -44,15 +58,15 @@ describe('layoutCodec — workspace (multi-dashboard)', () => {
     const result = decodeWorkspace(encodeWorkspace(withUnknown, 'dash-a'))
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.workspace.dashboards[0].widgets.map((w) => w.instanceId)).toEqual(['a', 'b'])
+      expect(result.workspace.dashboards[0].widgets.map((w) => w.widgetId)).toEqual([
+        'uuid-generator',
+        'json-formatter',
+      ])
     }
   })
 
   it('falls back to the first dashboard when activeDashboardId does not match any dashboard', () => {
-    const encoded = LZString.compressToEncodedURIComponent(
-      JSON.stringify({ version: 2, dashboards: DASHBOARDS, activeDashboardId: 'no-such-id' }),
-    )
-    const result = decodeWorkspace(encoded)
+    const result = decodeWorkspace(encodeWorkspace(DASHBOARDS, 'no-such-id'))
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.workspace.activeDashboardId).toBe(DASHBOARDS[0].id)
@@ -60,22 +74,13 @@ describe('layoutCodec — workspace (multi-dashboard)', () => {
   })
 
   it('rejects a workspace with no dashboards at all', () => {
-    const encoded = LZString.compressToEncodedURIComponent(
-      JSON.stringify({ version: 2, dashboards: [], activeDashboardId: 'none' }),
-    )
+    const encoded = LZString.compressToEncodedURIComponent(JSON.stringify({ v: 1, d: [], a: 'none' }))
     const result = decodeWorkspace(encoded)
     expect(result.ok).toBe(false)
   })
 
-  it('rejects undecompressable garbage without throwing', () => {
-    const result = decodeWorkspace('%%%not-a-valid-lz-string%%%')
-    expect(result.ok).toBe(false)
-  })
-
   it('rejects a payload with the wrong schema shape', () => {
-    const encoded = LZString.compressToEncodedURIComponent(
-      JSON.stringify({ version: 2, dashboards: 'not-an-array' }),
-    )
+    const encoded = LZString.compressToEncodedURIComponent(JSON.stringify({ v: 1, d: 'not-an-array', a: 'x' }))
     const result = decodeWorkspace(encoded)
     expect(result.ok).toBe(false)
   })
@@ -85,6 +90,22 @@ describe('layoutCodec — workspace (multi-dashboard)', () => {
     const result = decodeWorkspace(encoded)
     expect(result.ok).toBe(false)
   })
+
+  it('rejects undecompressable garbage without throwing', () => {
+    const result = decodeWorkspace('%%%not-a-valid-lz-string%%%')
+    expect(result.ok).toBe(false)
+  })
+
+  it('produces a meaningfully smaller payload than the old verbose (instanceId-carrying) shape would', () => {
+    const encoded = encodeWorkspace(DASHBOARDS, 'dash-a')
+    const verbosePayload = JSON.stringify({
+      version: 2,
+      dashboards: DASHBOARDS,
+      activeDashboardId: 'dash-a',
+    })
+    const verboseEncoded = LZString.compressToEncodedURIComponent(verbosePayload)
+    expect(encoded.length).toBeLessThan(verboseEncoded.length)
+  })
 })
 
 describe('layoutCodec — backward compatibility with pre-tabs share links', () => {
@@ -93,9 +114,7 @@ describe('layoutCodec — backward compatibility with pre-tabs share links', () 
   ]
 
   it('decodes an old single-dashboard (version 1) payload into a one-dashboard workspace', () => {
-    const encoded = LZString.compressToEncodedURIComponent(
-      JSON.stringify({ version: 1, widgets: LEGACY_WIDGETS }),
-    )
+    const encoded = LZString.compressToEncodedURIComponent(JSON.stringify({ version: 1, widgets: LEGACY_WIDGETS }))
 
     const result = decodeWorkspace(encoded)
 
