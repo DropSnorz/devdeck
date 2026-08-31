@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import LZString from 'lz-string'
 import { buildChains } from './detect'
 
 function labels(chain: ReturnType<typeof buildChains>[number]): string[] {
@@ -215,6 +216,27 @@ describe('buildChains', () => {
   it('labels a JSON Web Key distinctly from generic JSON', () => {
     const jwk = JSON.stringify({ kty: 'RSA', n: 'abc', e: 'AQAB' })
     expect(labels(buildChains(jwk)[0])).toEqual(['JWK (JSON Web Key)'])
+  })
+
+  it('decodes an LZ-String payload down to plain text', () => {
+    const chains = buildChains(LZString.compressToEncodedURIComponent('hello lz-string world'))
+    const chain = chains.find((c) => labels(c)[0] === 'LZ-String')
+    expect(chain).toBeDefined()
+    expect(labels(chain!)).toEqual(['LZ-String', 'Plain text'])
+    expect(chain![1].value).toBe('hello lz-string world')
+  })
+
+  it("chains LZ-String -> JSON, the shape this app's own share links use", () => {
+    const json = JSON.stringify({ dashboards: [], activeDashboardId: 'a' })
+    const chains = buildChains(LZString.compressToEncodedURIComponent(json))
+    const chain = chains.find((c) => labels(c).join('>') === 'LZ-String>JSON')
+    expect(chain).toBeDefined()
+    expect(chain![1].value).toBe(json)
+  })
+
+  it('does not mistake ordinary alphanumeric noise for LZ-String', () => {
+    const chains = buildChains('abcdefghijklmnop1234567890')
+    expect(chains.every((c) => !labels(c).includes('LZ-String'))).toBe(true)
   })
 
   it('detects a PEM block', () => {

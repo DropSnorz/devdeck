@@ -50,33 +50,63 @@ interface DashboardState extends PersistedDashboardState {
   importWorkspace: (dashboards: Dashboard[], activeDashboardId: string) => void
 }
 
+/** Instance ids only need to be unique, never meaningful — namespaced by
+ * dashboard so the same widget seeded onto two tabs (content-type-detector,
+ * notes) doesn't collide in useWidgetState's instanceId-keyed store. */
+function starterWidgets(
+  dashboard: string,
+  widgets: Omit<DashboardWidgetInstance, 'instanceId'>[],
+): DashboardWidgetInstance[] {
+  return widgets.map((widget) => ({ ...widget, instanceId: `seed-${dashboard}-${widget.widgetId}` }))
+}
+
+const MAIN_DASHBOARD_ID = 'seed-main'
+const DEV_DASHBOARD_ID = 'seed-dev'
+const DESIGN_DASHBOARD_ID = 'seed-design'
+
 /** Seed shown on a true first visit (nothing in localStorage yet). Once
  * persist hydrates from a real stored value — including a workspace the
  * user arrived at by removing every widget — this is overwritten and never
  * reappears. */
-const STARTER_WIDGETS: DashboardWidgetInstance[] = [
-  {
-    instanceId: 'seed-uuid-generator',
-    widgetId: 'uuid-generator',
-    x: 0,
-    y: 0,
-    w: 2,
-    h: 3,
-  },
-  { instanceId: 'seed-base64', widgetId: 'base64', x: 2, y: 0, w: 2, h: 2 },
-  {
-    instanceId: 'seed-json-formatter',
-    widgetId: 'json-formatter',
-    x: 4,
-    y: 0,
-    w: 4,
-    h: 4,
-  },
-]
-
-const STARTER_DASHBOARD_ID = 'seed-main'
+const STARTER_DASHBOARD_ID = DEV_DASHBOARD_ID
 const STARTER_DASHBOARDS: Dashboard[] = [
-  { id: STARTER_DASHBOARD_ID, name: 'Main', widgets: STARTER_WIDGETS },
+  {
+    id: MAIN_DASHBOARD_ID,
+    name: '✨️ Main',
+    widgets: starterWidgets('main', [
+      { widgetId: 'content-type-detector', x: 5, y: 0, w: 4, h: 4 },
+      { widgetId: 'timer', x: 9, y: 0, w: 3, h: 3 },
+      { widgetId: 'notes', x: 0, y: 0, w: 5, h: 4 },
+      { widgetId: 'password-generator', x: 9, y: 3, w: 3, h: 3 },
+      { widgetId: 'percentage-calculator', x: 3, y: 4, w: 3, h: 3 },
+      { widgetId: 'unit-converter', x: 0, y: 4, w: 3, h: 3 },
+      { widgetId: 'expression-evaluator', x: 6, y: 4, w: 3, h: 3 },
+      { widgetId: 'invisible-char-cleaner', x: 0, y: 7, w: 4, h: 4 },
+    ]),
+  },
+  {
+    id: DEV_DASHBOARD_ID,
+    name: '💻 Dev',
+    widgets: starterWidgets('dev', [
+      { widgetId: 'log-viewer', x: 0, y: 0, w: 6, h: 5 },
+      { widgetId: 'text-diff', x: 6, y: 0, w: 6, h: 5 },
+      { widgetId: 'base64', x: 0, y: 5, w: 3, h: 3 },
+      { widgetId: 'certificate-viewer', x: 8, y: 5, w: 4, h: 7 },
+      { widgetId: 'content-type-detector', x: 3, y: 5, w: 5, h: 3 },
+      { widgetId: 'json-formatter', x: 0, y: 8, w: 5, h: 4 },
+      { widgetId: 'subnet-calculator', x: 5, y: 8, w: 3, h: 4 },
+    ]),
+  },
+  {
+    id: DESIGN_DASHBOARD_ID,
+    name: '🎨 Design',
+    widgets: starterWidgets('design', [
+      { widgetId: 'color-converter', x: 0, y: 0, w: 3, h: 3 },
+      { widgetId: 'wcag-checker', x: 0, y: 3, w: 3, h: 5 },
+      { widgetId: 'notes', x: 3, y: 0, w: 3, h: 4 },
+      { widgetId: 'emoji-picker', x: 3, y: 4, w: 3, h: 4 },
+    ]),
+  },
 ]
 
 function nextAvailableY(widgets: DashboardWidgetInstance[]): number {
@@ -93,9 +123,7 @@ function updateDashboardWidgets(
   update: (widgets: DashboardWidgetInstance[]) => DashboardWidgetInstance[],
 ): Dashboard[] {
   return dashboards.map((dashboard) =>
-    dashboard.id === dashboardId
-      ? { ...dashboard, widgets: update(dashboard.widgets) }
-      : dashboard,
+    dashboard.id === dashboardId ? { ...dashboard, widgets: update(dashboard.widgets) } : dashboard,
   )
 }
 
@@ -104,14 +132,10 @@ function updateDashboardWidgets(
  * standalone pure function so it can be unit-tested directly against a
  * hand-built legacy blob, without needing to simulate `persist`'s
  * localStorage hydration timing. */
-export function migrateDashboardState(
-  persisted: unknown,
-  version: number,
-): PersistedDashboardState {
+export function migrateDashboardState(persisted: unknown, version: number): PersistedDashboardState {
   if (version < 2) {
     const legacy = persisted as { widgets?: DashboardWidgetInstance[] } | undefined
-    const widgets =
-      legacy?.widgets && Array.isArray(legacy.widgets) ? legacy.widgets : STARTER_WIDGETS
+    const widgets = legacy?.widgets && Array.isArray(legacy.widgets) ? legacy.widgets : STARTER_DASHBOARDS[0].widgets
     return {
       dashboards: [{ id: 'main', name: 'Main', widgets }],
       activeDashboardId: 'main',
@@ -171,9 +195,7 @@ export const useDashboardStore = create<DashboardState>()(
           dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
             widgets.map((widget) => {
               const updated = layout.find((item) => item.i === widget.instanceId)
-              return updated
-                ? { ...widget, x: updated.x, y: updated.y, w: updated.w, h: updated.h }
-                : widget
+              return updated ? { ...widget, x: updated.x, y: updated.y, w: updated.w, h: updated.h } : widget
             }),
           ),
         }))
@@ -182,9 +204,7 @@ export const useDashboardStore = create<DashboardState>()(
       setWidgetPosition: (dashboardId, instanceId, position) => {
         set((state) => ({
           dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
-            widgets.map((widget) =>
-              widget.instanceId === instanceId ? { ...widget, ...position } : widget,
-            ),
+            widgets.map((widget) => (widget.instanceId === instanceId ? { ...widget, ...position } : widget)),
           ),
         }))
       },
@@ -202,9 +222,7 @@ export const useDashboardStore = create<DashboardState>()(
 
       renameDashboard: (id, name) => {
         set((state) => ({
-          dashboards: state.dashboards.map((dashboard) =>
-            dashboard.id === id ? { ...dashboard, name } : dashboard,
-          ),
+          dashboards: state.dashboards.map((dashboard) => (dashboard.id === id ? { ...dashboard, name } : dashboard)),
         }))
       },
 
@@ -215,8 +233,7 @@ export const useDashboardStore = create<DashboardState>()(
           dashboards.find((dashboard) => dashboard.id === id)?.widgets.map((widget) => widget.instanceId) ?? []
         set((state) => {
           const remaining = state.dashboards.filter((dashboard) => dashboard.id !== id)
-          const activeDashboardId =
-            state.activeDashboardId === id ? remaining[0].id : state.activeDashboardId
+          const activeDashboardId = state.activeDashboardId === id ? remaining[0].id : state.activeDashboardId
           return { dashboards: remaining, activeDashboardId }
         })
         if (removedInstanceIds.length > 0) {
@@ -225,11 +242,7 @@ export const useDashboardStore = create<DashboardState>()(
       },
 
       setActiveDashboardId: (id) => {
-        set((state) =>
-          state.dashboards.some((dashboard) => dashboard.id === id)
-            ? { activeDashboardId: id }
-            : state,
-        )
+        set((state) => (state.dashboards.some((dashboard) => dashboard.id === id) ? { activeDashboardId: id } : state))
       },
 
       importWorkspace: (dashboards, activeDashboardId) => set({ dashboards, activeDashboardId }),

@@ -29,6 +29,7 @@ import { yamlJsonConverterDefinition } from './yaml-json-converter/definition'
 import { invisibleCharCleanerDefinition } from './invisible-char-cleaner/definition'
 import { tokenCounterDefinition } from './token-counter/definition'
 import { logViewerDefinition } from './log-viewer/definition'
+import { lzStringDefinition } from './lz-string/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -63,6 +64,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   invisibleCharCleanerDefinition,
   tokenCounterDefinition,
   logViewerDefinition,
+  lzStringDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(

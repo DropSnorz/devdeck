@@ -12,6 +12,16 @@ const DASHBOARDS: Dashboard[] = [
   { id: 'dash-b', name: 'Dash B', widgets: [] },
 ]
 
+/** Strips `instanceId` — the wire format never carries it (see
+ * layoutCodec.ts), so a round-tripped workspace gets fresh ones and can
+ * only be compared on everything else. */
+function withoutInstanceIds(dashboards: Dashboard[]) {
+  return dashboards.map((dashboard) => ({
+    ...dashboard,
+    widgets: dashboard.widgets.map(({ instanceId: _instanceId, ...rest }) => rest),
+  }))
+}
+
 describe('buildShareUrl', () => {
   it('puts the workspace in the URL fragment, not a query param', () => {
     const shareUrl = buildShareUrl(DASHBOARDS, 'dash-a')
@@ -29,7 +39,7 @@ describe('buildShareUrl', () => {
     const result = decodeWorkspace(encoded ?? '')
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.workspace.dashboards).toEqual(DASHBOARDS)
+      expect(withoutInstanceIds(result.workspace.dashboards)).toEqual(withoutInstanceIds(DASHBOARDS))
       expect(result.workspace.activeDashboardId).toBe('dash-b')
     }
   })
