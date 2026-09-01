@@ -4,6 +4,7 @@ import { base64Definition } from './base64/definition'
 import { urlEncoderDefinition } from './url-encoder/definition'
 import { timestampConverterDefinition } from './timestamp-converter/definition'
 import { jsonFormatterDefinition } from './json-formatter/definition'
+import { xmlFormatterDefinition } from './xml-formatter/definition'
 import { colorConverterDefinition } from './color-converter/definition'
 import { hashGeneratorDefinition } from './hash-generator/definition'
 import { jwtDecoderDefinition } from './jwt-decoder/definition'
@@ -39,6 +40,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   urlEncoderDefinition,
   timestampConverterDefinition,
   jsonFormatterDefinition,
+  xmlFormatterDefinition,
   colorConverterDefinition,
   hashGeneratorDefinition,
   jwtDecoderDefinition,

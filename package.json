@@ -16,6 +16,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-xml": "^6.1.0",
     "@codemirror/language": "^6.12.4",
     "@codemirror/merge": "^6.12.2",
     "@codemirror/search": "^6.7.1",

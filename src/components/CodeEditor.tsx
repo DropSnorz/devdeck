@@ -5,16 +5,18 @@ import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { openSearchPanel } from '@codemirror/search'
 import { tags } from '@lezer/highlight'
 import { json } from '@codemirror/lang-json'
+import { xml } from '@codemirror/lang-xml'
 import { Prec, type Extension } from '@codemirror/state'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/utils'
 
-export type CodeEditorLanguage = 'json' | 'plaintext'
+export type CodeEditorLanguage = 'json' | 'xml' | 'plaintext'
 
 const LANGUAGE_EXTENSIONS: Record<CodeEditorLanguage, () => Extension[]> = {
   json: () => [json()],
+  xml: () => [xml()],
   // No language grammar to highlight — just wrap long lines instead of
   // scrolling horizontally, which matters far more for prose than for the
   // structured/single-line inputs the other widgets edit.
