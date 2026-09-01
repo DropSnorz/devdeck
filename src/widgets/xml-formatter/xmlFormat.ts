@@ -34,16 +34,80 @@ function serializeAttrs(el: Element): string {
 /** A node is "significant" for pretty-printing if it isn't whitespace-only
  * text left over from the original formatting — that's regenerated from
  * indentLevel instead, same as JSON.stringify ignoring insignificant
- * whitespace between tokens. */
+ * whitespace between tokens. Only used once an element has already been
+ * ruled out as mixed content (see `isMixedContent`) — a whitespace-only text
+ * node *between* inline elements can still be a meaningful separator, so it
+ * must not be dropped there. */
 function isSignificant(node: ChildNode): boolean {
   return node.nodeType !== Node.TEXT_NODE || !!node.textContent?.trim()
 }
 
-function serializeNode(node: ChildNode, depth: number, indent: string, lines: string[]): void {
+function isTextLike(node: ChildNode): boolean {
+  return node.nodeType === Node.TEXT_NODE || node.nodeType === Node.CDATA_SECTION_NODE
+}
+
+/** True when `el` has both element children and non-whitespace text
+ * directly inside it — e.g. `<p>Hello <b>world</b>!</p>`. Reformatting that
+ * onto separate indented lines (the block-formatting path below) would
+ * inject whitespace the markup never had, changing what it renders as, so
+ * mixed content is instead serialized inline, byte-for-byte. */
+function isMixedContent(el: Element): boolean {
+  const children = Array.from(el.childNodes)
+  return (
+    children.some((n) => n.nodeType === Node.ELEMENT_NODE) &&
+    children.some((n) => isTextLike(n) && !!n.textContent?.trim())
+  )
+}
+
+/** `xml:space="preserve"` (XML's own whitespace-preservation attribute)
+ * applies to an element and inherits down to its descendants until a
+ * `xml:space="default"` turns it back off. */
+function resolvePreserveSpace(el: Element, inherited: boolean): boolean {
+  const value = el.getAttribute('xml:space')
+  if (value === 'preserve') return true
+  if (value === 'default') return false
+  return inherited
+}
+
+/** Serializes a node byte-for-byte, with no added whitespace anywhere in the
+ * subtree — used for mixed content and `xml:space="preserve"` subtrees,
+ * where reformatting would change the text's meaning. Every descendant
+ * stays inline once entered, since indenting a nested node would reinject
+ * exactly the whitespace this exists to avoid. */
+function serializeInline(node: ChildNode): string {
+  switch (node.nodeType) {
+    case Node.ELEMENT_NODE: {
+      const el = node as Element
+      const attrs = serializeAttrs(el)
+      const children = Array.from(el.childNodes)
+      if (children.length === 0) return `<${el.tagName}${attrs}/>`
+      return `<${el.tagName}${attrs}>${children.map(serializeInline).join('')}</${el.tagName}>`
+    }
+    case Node.TEXT_NODE:
+      return escapeText(node.textContent ?? '')
+    case Node.CDATA_SECTION_NODE:
+      return `<![CDATA[${node.textContent ?? ''}]]>`
+    case Node.COMMENT_NODE:
+      return `<!--${node.textContent ?? ''}-->`
+    case Node.PROCESSING_INSTRUCTION_NODE: {
+      const pi = node as ProcessingInstruction
+      return `<?${pi.target} ${pi.data}?>`
+    }
+    default:
+      return ''
+  }
+}
+
+function serializeNode(node: ChildNode, depth: number, indent: string, lines: string[], preserve: boolean): void {
   const pad = indent.repeat(depth)
   switch (node.nodeType) {
     case Node.ELEMENT_NODE: {
       const el = node as Element
+      const effectivePreserve = resolvePreserveSpace(el, preserve)
+      if (effectivePreserve || isMixedContent(el)) {
+        lines.push(`${pad}${serializeInline(el)}`)
+        break
+      }
       const attrs = serializeAttrs(el)
       const children = Array.from(el.childNodes).filter(isSignificant)
       if (children.length === 0) {
@@ -53,7 +117,7 @@ function serializeNode(node: ChildNode, depth: number, indent: string, lines: st
         lines.push(`${pad}<${el.tagName}${attrs}>${text}</${el.tagName}>`)
       } else {
         lines.push(`${pad}<${el.tagName}${attrs}>`)
-        for (const child of children) serializeNode(child, depth + 1, indent, lines)
+        for (const child of children) serializeNode(child, depth + 1, indent, lines, effectivePreserve)
         lines.push(`${pad}</${el.tagName}>`)
       }
       break
@@ -80,9 +144,13 @@ function serializeNode(node: ChildNode, depth: number, indent: string, lines: st
 /** DOMParser silently drops the `<?xml version="1.0" ...?>` declaration —
  * it isn't a real node in the DOM, only readable back off the original
  * source — so it's recovered by regex and re-attached rather than lost on
- * every round trip through pretty/minify. */
+ * every round trip through pretty/minify. Requires whitespace right after
+ * `xml` so a leading `<?xml-stylesheet ...?>` processing instruction (a
+ * real DOM node, unlike the declaration) isn't mistaken for one — that
+ * would otherwise get emitted twice, once prepended here and once again
+ * when `doc.childNodes` is walked. */
 function extractDeclaration(input: string): string | null {
-  const match = input.match(/^\s*<\?xml[^?]*\?>/i)
+  const match = input.match(/^\s*<\?xml\s[^?]*\?>/i)
   return match ? match[0].trim() : null
 }
 
@@ -95,7 +163,7 @@ export function prettyPrintXml(input: string, doc: Document, indent = '  '): str
   const declaration = extractDeclaration(input)
   if (declaration) lines.push(declaration)
   for (const child of Array.from(doc.childNodes).filter(isSignificant)) {
-    serializeNode(child, 0, indent, lines)
+    serializeNode(child, 0, indent, lines, false)
   }
   return lines.join('\n')
 }
@@ -107,7 +175,7 @@ export function minifyXml(input: string, doc: Document): string {
   const declaration = extractDeclaration(input)
   const lines: string[] = []
   for (const child of Array.from(doc.childNodes).filter(isSignificant)) {
-    serializeNode(child, 0, '', lines)
+    serializeNode(child, 0, '', lines, false)
   }
   return (declaration ?? '') + lines.join('')
 }
@@ -134,6 +202,15 @@ function elementToValue(el: Element): unknown {
     if (text) result['#text'] = text
     return result
   }
+  // Mixed content — direct text alongside child elements, e.g.
+  // `<p>Hello <b>world</b>!</p>` — would otherwise be silently dropped
+  // here, since only descendant elements get their own keys below.
+  const directText = Array.from(el.childNodes)
+    .filter(isTextLike)
+    .map((n) => n.textContent ?? '')
+    .join('')
+    .trim()
+  if (directText) result['#text'] = directText
   for (const child of childEls) {
     const value = elementToValue(child)
     const key = child.tagName

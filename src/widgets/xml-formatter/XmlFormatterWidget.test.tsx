@@ -24,7 +24,7 @@ describe('XmlFormatterWidget', () => {
 
   it('shows an error instead of the tree for invalid XML', async () => {
     const user = userEvent.setup()
-    render(<XmlFormatterWidget instanceId="test" mode="grid" />)
+    const { container } = render(<XmlFormatterWidget instanceId="test" mode="grid" />)
 
     await user.click(screen.getByRole('button', { name: 'Tree' }))
     const input = screen.getByRole('textbox', { name: /xml input/i })
@@ -33,6 +33,10 @@ describe('XmlFormatterWidget', () => {
     expect(screen.queryByText('"world"')).not.toBeInTheDocument()
     expect(screen.queryByRole('tree')).not.toBeInTheDocument()
     expect(screen.queryByText(/output will appear here/i)).not.toBeInTheDocument()
+    // Exact wording comes from DOMParser's own error and isn't worth pinning
+    // down exactly — just confirm the error-styled paragraph (ErrorMessage)
+    // rendered instead of the placeholder/tree above.
+    expect(container.querySelector('p.text-destructive')).not.toBeNull()
   })
 
   it('renders a compact single-line output in Minified view', async () => {

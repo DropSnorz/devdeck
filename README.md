@@ -48,30 +48,28 @@ Any pinned widget can fill the screen for focused work, and switching back leave
 you typed exactly where it was. Need a tool that isn't on your dashboard at all? Launch it
 from the tool browser or the command palette (`Cmd/Ctrl+K`) without pinning it.
 
-
 ### Save and share
 
 Layouts persist to `localStorage` automatically, and can be shared with a teammate through a
 URL or QR code. Only the layout travels, not live widget content, and opening a shared link
 always asks before it touches your local dashboard.
 
-
 ## Widgets
 
 32 tools across 10 categories, and growing.
 
-| Category   | Widgets                                                                                  |
-| ---------- | ----------------------------------------------------------------------------------------- |
-| Generators | UUID Generator                                                                             |
-| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter |
-| Encoding   | Base64, JWT Encoder, URL Encoder                                                           |
-| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                         |
-| Text       | Content Type Detector, Emoji Picker, Notes, Regex Tester, Text Case Converter, Text Diff    |
+| Category   | Widgets                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------- |
+| Generators | UUID Generator                                                                                            |
+| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter                |
+| Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                               |
+| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                                        |
+| Text       | Content Type Detector, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff      |
 | Math       | Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
-| AI / LLM   | Invisible Character Cleaner, Token Counter                                                 |
-| Color      | Color Converter, WCAG Contrast Checker                                                     |
-| Network    | Subnet Calculator                                                                          |
-| Time       | Timer                                                                                       |
+| AI / LLM   | Invisible Character Cleaner, Token Counter                                                                |
+| Color      | Color Converter, WCAG Contrast Checker                                                                    |
+| Network    | Subnet Calculator                                                                                         |
+| Time       | Timer                                                                                                     |
 
 ## How it compares
 
@@ -79,39 +77,39 @@ There are already plenty of great developer utility tools out there, covering ev
 
 This dashboard-first approach won't be for everyone. It's a deliberate attempt to stand apart from the alternatives below.
 
-*Worth a look before building a new one 👀*
+_Worth a look before building a new one 👀_
 
-| Tool                                                  | Local first | Offline App | Web app | Multi-tools single page | Persistent workspace | License        |
-| ------------------------------------------------------ | :---------: | :---------: | :-----: | :-----------------------: | :------------------: | -------------- |
-| ⭐ **Localgrid**                                          |     🟢       |     🟢       |    🟢    |            🟢              |          🟢           | **TBD**        |
-| [DevToys](https://devtoys.app/)                        |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🟢 MIT         |
-| [DevUtils](https://devutils.com/)                      |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🔴 Proprietary |
-| [devutils.sh](https://devutils.sh/)                    |     🟢       |     🟢       |    🟢    |            🔴              |          🔴           | ❓             |
-| [NextDevTools](https://www.nextdevtools.com/)          |     🟢       |     🔴       |    🟢    |            🟡              |          🔴           | ❓             |
-| [SafeUtils](https://safeutils.com/)                    |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🔴 Proprietary |
-| [Boop](https://github.com/IvanMathy/Boop)              |     🟢       |     🟢       |    🔴    |            🔴              |          🟡           | 🟢 MIT         |
-| [Devly](https://devly.techfixpro.net/)                 |     🟢       |     🟢       |    🔴    |            🟡              |          🔴           | 🔴 Proprietary |
-| [DevToolGrid](https://devtoolgrid.com/)                |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
-| [devdeck.ir](https://devdeck.ir/)                      |     🟢       |     ❓       |    🟢    |            🔴              |          🔴           | ❓             |
-| [IT-Tools](https://it-tools.tech/)                     |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 GPL-3.0     |
-| [CyberChef](https://gchq.github.io/CyberChef/)         |     🟢       |     🟡       |    🟢    |            🟡              |          🟡           | 🟢 Apache-2.0  |
-| [DevTools-X](https://github.com/fosslife/devtools-x)   |     🟢       |     🟢       |    🔴    |            🔴              |          🔴           | 🟢 MIT         |
-| [Open Dev](https://github.com/Jamalianpour/open-dev)   |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 MIT         |
-| [DevTools Daily](https://www.devtoolsdaily.com/)       |     🟢       |     🔴       |    🟢    |            🔴              |          🟡           | ❓             |
-| [devtools.tools](https://www.devtools.tools)           |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
-| [TrueDevTools](https://truedevtools.com/)              |     🟢       |     🟢       |    🟢    |            🔴              |          🔴           | 🟢 MIT         |
-| [DevSnap.net](https://devsnap.net/)                    |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
-| [developers.do](https://github.com/hminaya/devtools)   |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟡 CC BY-NC-SA |
-| [JamDev](https://github.com/jamdotdev/jam-dev-utilities) |   🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 GPL-3.0     |
-| [Online Web Dev Tools](https://onlinewebdevtools.com/) |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
-| [DevToolbox](https://tools-dev.com)                    |     🟡       |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
-| [GameParticles](https://gameparticles.com/)            |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
-| [devs-forge](https://github.com/chinmaygirkar786/devs-forge) | 🟢     |     🔴       |    🟢    |            🔴              |          🔴           | ❓             |
-| [CodersTool](https://www.coderstool.com/)              |     🟡       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
-| [OpenReplay Tools](https://openreplay.com/tools/)      |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
-| [ToolFlic](https://toolflic.com/)                      |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🔴 Proprietary |
-| [Universal Dev Tools](https://universaldevtools.in/)   |     🔴       |     🔴       |    🟢    |            🔴              |          ❓           | ❓             |
-| [WebDev-Tools](https://webdev-tools.info/)             |     🟢       |     🔴       |    🟢    |            🔴              |          🔴           | 🟢 MIT         |
+| Tool                                                         | Local first | Offline App | Web app | Multi-tools single page | Persistent workspace | License        |
+| ------------------------------------------------------------ | :---------: | :---------: | :-----: | :---------------------: | :------------------: | -------------- |
+| ⭐ **Localgrid**                                             |     🟢      |     🟢      |   🟢    |           🟢            |          🟢          | **TBD**        |
+| [DevToys](https://devtoys.app/)                              |     🟢      |     🟢      |   🔴    |           🔴            |          🔴          | 🟢 MIT         |
+| [DevUtils](https://devutils.com/)                            |     🟢      |     🟢      |   🔴    |           🔴            |          🔴          | 🔴 Proprietary |
+| [devutils.sh](https://devutils.sh/)                          |     🟢      |     🟢      |   🟢    |           🔴            |          🔴          | ❓             |
+| [NextDevTools](https://www.nextdevtools.com/)                |     🟢      |     🔴      |   🟢    |           🟡            |          🔴          | ❓             |
+| [SafeUtils](https://safeutils.com/)                          |     🟢      |     🟢      |   🔴    |           🔴            |          🔴          | 🔴 Proprietary |
+| [Boop](https://github.com/IvanMathy/Boop)                    |     🟢      |     🟢      |   🔴    |           🔴            |          🟡          | 🟢 MIT         |
+| [Devly](https://devly.techfixpro.net/)                       |     🟢      |     🟢      |   🔴    |           🟡            |          🔴          | 🔴 Proprietary |
+| [DevToolGrid](https://devtoolgrid.com/)                      |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | ❓             |
+| [devdeck.ir](https://devdeck.ir/)                            |     🟢      |     ❓      |   🟢    |           🔴            |          🔴          | ❓             |
+| [IT-Tools](https://it-tools.tech/)                           |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🟢 GPL-3.0     |
+| [CyberChef](https://gchq.github.io/CyberChef/)               |     🟢      |     🟡      |   🟢    |           🟡            |          🟡          | 🟢 Apache-2.0  |
+| [DevTools-X](https://github.com/fosslife/devtools-x)         |     🟢      |     🟢      |   🔴    |           🔴            |          🔴          | 🟢 MIT         |
+| [Open Dev](https://github.com/Jamalianpour/open-dev)         |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🟢 MIT         |
+| [DevTools Daily](https://www.devtoolsdaily.com/)             |     🟢      |     🔴      |   🟢    |           🔴            |          🟡          | ❓             |
+| [devtools.tools](https://www.devtools.tools)                 |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | ❓             |
+| [TrueDevTools](https://truedevtools.com/)                    |     🟢      |     🟢      |   🟢    |           🔴            |          🔴          | 🟢 MIT         |
+| [DevSnap.net](https://devsnap.net/)                          |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🔴 Proprietary |
+| [developers.do](https://github.com/hminaya/devtools)         |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🟡 CC BY-NC-SA |
+| [JamDev](https://github.com/jamdotdev/jam-dev-utilities)     |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🟢 GPL-3.0     |
+| [Online Web Dev Tools](https://onlinewebdevtools.com/)       |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | ❓             |
+| [DevToolbox](https://tools-dev.com)                          |     🟡      |     🔴      |   🟢    |           🔴            |          🔴          | ❓             |
+| [GameParticles](https://gameparticles.com/)                  |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🔴 Proprietary |
+| [devs-forge](https://github.com/chinmaygirkar786/devs-forge) |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | ❓             |
+| [CodersTool](https://www.coderstool.com/)                    |     🟡      |     🔴      |   🟢    |           🔴            |          🔴          | 🔴 Proprietary |
+| [OpenReplay Tools](https://openreplay.com/tools/)            |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🔴 Proprietary |
+| [ToolFlic](https://toolflic.com/)                            |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🔴 Proprietary |
+| [Universal Dev Tools](https://universaldevtools.in/)         |     🔴      |     🔴      |   🟢    |           🔴            |          ❓          | ❓             |
+| [WebDev-Tools](https://webdev-tools.info/)                   |     🟢      |     🔴      |   🟢    |           🔴            |          🔴          | 🟢 MIT         |
 
 ## Development
 
@@ -126,16 +124,16 @@ Or just use the [live demo](https://dropsnorz.github.io/localgrid.dev/), nothing
 
 ### Available scripts
 
-| Script                  | Description                               |
-| ------------------------ | ------------------------------------------ |
-| `npm run dev`            | Start the Vite dev server                  |
-| `npm run build`          | Type-check and build for production        |
-| `npm run preview`        | Preview the production build locally       |
-| `npm run lint`           | Lint the codebase with ESLint               |
-| `npm run format`         | Format the codebase with Prettier           |
-| `npm run format:check`   | Check formatting without writing changes    |
-| `npm run test`           | Run the test suite once                     |
-| `npm run test:watch`     | Run the test suite in watch mode            |
+| Script                 | Description                              |
+| ---------------------- | ---------------------------------------- |
+| `npm run dev`          | Start the Vite dev server                |
+| `npm run build`        | Type-check and build for production      |
+| `npm run preview`      | Preview the production build locally     |
+| `npm run lint`         | Lint the codebase with ESLint            |
+| `npm run format`       | Format the codebase with Prettier        |
+| `npm run format:check` | Check formatting without writing changes |
+| `npm run test`         | Run the test suite once                  |
+| `npm run test:watch`   | Run the test suite in watch mode         |
 
 ## Architecture
 

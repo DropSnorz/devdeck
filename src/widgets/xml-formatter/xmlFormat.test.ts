@@ -45,6 +45,32 @@ describe('prettyPrintXml', () => {
     const { doc } = parseXml(input)
     expect(prettyPrintXml(input, doc!)).toBe('<root>\n  <a>1</a>\n  <b>2</b>\n</root>')
   })
+
+  it('leaves mixed content untouched instead of reindenting the text out of place', () => {
+    const input = '<p>Hello <b>world</b>!</p>'
+    const { doc } = parseXml(input)
+    const output = prettyPrintXml(input, doc!)
+    expect(output).toBe(input)
+    // Round-trips to the exact same text, not just the same markup shape —
+    // reformatting mixed content is precisely what would drop the spaces.
+    expect(parseXml(output).doc!.documentElement.textContent).toBe(parseXml(input).doc!.documentElement.textContent)
+  })
+
+  it('honors xml:space="preserve" and keeps the whole subtree verbatim', () => {
+    const input = '<root><pre xml:space="preserve">line one\n\n  line two  </pre></root>'
+    const { doc } = parseXml(input)
+    expect(prettyPrintXml(input, doc!)).toBe(
+      '<root>\n  <pre xml:space="preserve">line one\n\n  line two  </pre>\n</root>',
+    )
+  })
+
+  it('does not duplicate a leading xml-stylesheet processing instruction', () => {
+    const input = '<?xml-stylesheet href="style.xsl" type="text/xsl"?>\n<root><a>1</a></root>'
+    const { doc } = parseXml(input)
+    expect(prettyPrintXml(input, doc!)).toBe(
+      '<?xml-stylesheet href="style.xsl" type="text/xsl"?>\n<root>\n  <a>1</a>\n</root>',
+    )
+  })
 })
 
 describe('minifyXml', () => {
@@ -58,6 +84,12 @@ describe('minifyXml', () => {
     const input = '<?xml version="1.0"?>\n<root><a>1</a></root>'
     const { doc } = parseXml(input)
     expect(minifyXml(input, doc!)).toBe('<?xml version="1.0"?><root><a>1</a></root>')
+  })
+
+  it('does not duplicate a leading xml-stylesheet processing instruction', () => {
+    const input = '<?xml-stylesheet href="style.xsl" type="text/xsl"?>\n<root><a>1</a></root>'
+    const { doc } = parseXml(input)
+    expect(minifyXml(input, doc!)).toBe('<?xml-stylesheet href="style.xsl" type="text/xsl"?><root><a>1</a></root>')
   })
 })
 
@@ -75,5 +107,10 @@ describe('xmlToTree', () => {
   it('prefixes attributes with @ and keys text content as #text', () => {
     const { doc } = parseXml('<root><a id="1">hello</a></root>')
     expect(xmlToTree(doc!)).toEqual({ root: { a: { '@id': '1', '#text': 'hello' } } })
+  })
+
+  it('keeps direct mixed-content text under #text instead of dropping it', () => {
+    const { doc } = parseXml('<p>Hello <b>world</b>!</p>')
+    expect(xmlToTree(doc!)).toEqual({ p: { '#text': 'Hello !', b: 'world' } })
   })
 })
