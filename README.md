@@ -58,12 +58,12 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-29 tools across 10 categories, and growing.
+32 tools across 10 categories, and growing.
 
 | Category   | Widgets                                                                                  |
 | ---------- | ----------------------------------------------------------------------------------------- |
 | Generators | UUID Generator                                                                             |
-| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, YAML ↔ JSON Converter                |
+| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter |
 | Encoding   | Base64, JWT Encoder, URL Encoder                                                           |
 | Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                         |
 | Text       | Content Type Detector, Emoji Picker, Notes, Regex Tester, Text Case Converter, Text Diff    |
