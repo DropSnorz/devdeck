@@ -1,0 +1,223 @@
+import { useEffect, useId, useMemo, useState } from 'react'
+import { Home, Moon, Plus, Sun, X } from 'lucide-react'
+import { Field } from '@/components/Field'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { useWidgetState } from '@/widgets/useWidgetState'
+import type { WidgetProps } from '@/widgets/types'
+import { WORLD_CITIES, defaultCityIds, getCity, type City } from './cities'
+import {
+  dayOffsetLabel,
+  formatOffsetLabel,
+  formatZonedDateLabel,
+  formatZonedTime,
+  getUtcOffsetMinutes,
+} from './timeZoneMath'
+import { isNight } from './solarTerminator'
+import { WorldClockMap } from './WorldClockMap'
+
+const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+const SORTED_CITIES = [...WORLD_CITIES].sort((a, b) => a.city.localeCompare(b.city))
+
+function pad(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+function toLocalDatetimeInputValue(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
+    date.getMinutes(),
+  )}`
+}
+
+function sameIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id))
+}
+
+export default function WorldClockWidget({ instanceId }: WidgetProps) {
+  const [selectedIds, setSelectedIds] = useWidgetState<string[]>(instanceId, 'selectedIds', () =>
+    defaultCityIds(LOCAL_TIME_ZONE),
+  )
+  // Same "capture the mount-time default once" trick TimestampConverterWidget
+  // uses for its epoch — there's no fixed constant to diff against here
+  // either, since the default itself depends on the browser's time zone.
+  const [initialSelectedIds] = useWidgetState<string[]>(instanceId, 'initialSelectedIds', selectedIds)
+  const [referenceMode, setReferenceMode] = useWidgetState<'live' | 'custom'>(instanceId, 'referenceMode', 'live')
+  const [customDateInput, setCustomDateInput] = useWidgetState(instanceId, 'customDateInput', () =>
+    toLocalDatetimeInputValue(new Date()),
+  )
+  const [addPick, setAddPick] = useState('')
+
+  useWidgetDirty(instanceId, !sameIds(selectedIds, initialSelectedIds) || referenceMode === 'custom')
+
+  const [liveNow, setLiveNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (referenceMode !== 'live') return
+    const id = setInterval(() => setLiveNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [referenceMode])
+
+  const date = useMemo(() => {
+    if (referenceMode === 'live') return new Date(liveNow)
+    const parsed = new Date(customDateInput)
+    return Number.isNaN(parsed.getTime()) ? new Date(liveNow) : parsed
+  }, [referenceMode, liveNow, customDateInput])
+
+  const cities = useMemo(() => selectedIds.map(getCity).filter((c): c is City => c !== undefined), [selectedIds])
+  const localCity = useMemo(() => WORLD_CITIES.find((c) => c.tz === LOCAL_TIME_ZONE) ?? null, [])
+  const availableToAdd = useMemo(() => SORTED_CITIES.filter((c) => !selectedIds.includes(c.id)), [selectedIds])
+  const addValue = availableToAdd.some((c) => c.id === addPick) ? addPick : (availableToAdd[0]?.id ?? '')
+
+  const handleAdd = () => {
+    if (!addValue) return
+    setSelectedIds((prev) => (prev.includes(addValue) ? prev : [...prev, addValue]))
+    setAddPick('')
+  }
+
+  const handleRemove = (id: string) => {
+    setSelectedIds((prev) => prev.filter((x) => x !== id))
+  }
+
+  const handleNow = () => {
+    const now = new Date()
+    setLiveNow(now.getTime())
+    setCustomDateInput(toLocalDatetimeInputValue(now))
+    setReferenceMode('live')
+  }
+
+  const handleCustomChange = (value: string) => {
+    setCustomDateInput(value)
+    setReferenceMode('custom')
+  }
+
+  const dateFieldId = useId()
+  const addFieldId = useId()
+
+  return (
+    <div className="@container flex h-full flex-col gap-2 text-xs">
+      <div className="flex flex-wrap items-end gap-1.5">
+        <Field label="Add city" htmlFor={addFieldId} className="min-w-0 flex-1">
+          <select
+            id={addFieldId}
+            value={addValue}
+            onChange={(event) => setAddPick(event.target.value)}
+            disabled={availableToAdd.length === 0}
+            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
+          >
+            {availableToAdd.length === 0 ? (
+              <option value="">All cities added</option>
+            ) : (
+              availableToAdd.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.city}, {c.country}
+                </option>
+              ))
+            )}
+          </select>
+        </Field>
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleAdd}
+          disabled={availableToAdd.length === 0}
+          className="h-8 shrink-0"
+        >
+          <Plus className="size-3.5" />
+          Add
+        </Button>
+      </div>
+
+      <div className="hidden @xs:block aspect-[2/1] w-full shrink-0 overflow-hidden rounded-md bg-muted/20">
+        <WorldClockMap date={date} cities={cities} homeCityId={localCity?.id} />
+      </div>
+
+      <div className="flex items-end gap-1.5">
+        <Field label="Reference time" htmlFor={dateFieldId} className="min-w-0 flex-1">
+          <Input
+            id={dateFieldId}
+            type="datetime-local"
+            value={referenceMode === 'live' ? toLocalDatetimeInputValue(date) : customDateInput}
+            onChange={(event) => handleCustomChange(event.target.value)}
+            className="w-full font-mono"
+          />
+        </Field>
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleNow}
+          disabled={referenceMode === 'live'}
+          className="h-8 shrink-0"
+        >
+          Now
+        </Button>
+      </div>
+      {referenceMode === 'live' ? (
+        <span className="-mt-1 inline-flex items-center gap-1 self-start text-success">
+          <span className="size-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" />
+          Live
+        </span>
+      ) : (
+        <span className="-mt-1 self-start text-muted-foreground">Previewing a custom time</span>
+      )}
+
+      <div className="min-h-0 flex-1 space-y-1 overflow-auto">
+        {cities.length === 0 && (
+          <p className="p-2 text-center text-muted-foreground">Add a city to see its local time</p>
+        )}
+        {cities.map((city) => (
+          <CityRow
+            key={city.id}
+            city={city}
+            date={date}
+            isHome={city.id === localCity?.id}
+            onRemove={() => handleRemove(city.id)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CityRow({ city, date, isHome, onRemove }: { city: City; date: Date; isHome: boolean; onRemove: () => void }) {
+  const night = isNight(city.lat, city.lon, date)
+  const offsetMinutes = getUtcOffsetMinutes(date, city.tz)
+  const dayOffset = dayOffsetLabel(date, city.tz, LOCAL_TIME_ZONE)
+
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md bg-background p-2 dark:bg-muted/40">
+      <div className="flex min-w-0 items-center gap-2">
+        {night ? (
+          <Moon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        ) : (
+          <Sun className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        )}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 font-medium text-foreground">
+            <span className="truncate">{city.city}</span>
+            {isHome && <Home className="size-3 shrink-0 text-muted-foreground" aria-label="Your local time zone" />}
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <span className="truncate">{formatZonedDateLabel(date, city.tz)}</span>
+            {dayOffset && (
+              <span className={cn('font-medium', dayOffset.startsWith('+') ? 'text-primary' : 'text-destructive')}>
+                {dayOffset}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="text-right">
+          <div className="font-mono text-sm font-semibold text-foreground">{formatZonedTime(date, city.tz)}</div>
+          <div className="text-[11px] text-muted-foreground">{formatOffsetLabel(offsetMinutes)}</div>
+        </div>
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onRemove} aria-label={`Remove ${city.city}`}>
+          <X className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  )
+}

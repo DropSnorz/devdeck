@@ -3,6 +3,7 @@ import { uuidGeneratorDefinition } from './uuid-generator/definition'
 import { base64Definition } from './base64/definition'
 import { urlEncoderDefinition } from './url-encoder/definition'
 import { timestampConverterDefinition } from './timestamp-converter/definition'
+import { worldClockDefinition } from './world-clock/definition'
 import { jsonFormatterDefinition } from './json-formatter/definition'
 import { xmlFormatterDefinition } from './xml-formatter/definition'
 import { colorConverterDefinition } from './color-converter/definition'
@@ -39,6 +40,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   base64Definition,
   urlEncoderDefinition,
   timestampConverterDefinition,
+  worldClockDefinition,
   jsonFormatterDefinition,
   xmlFormatterDefinition,
   colorConverterDefinition,
