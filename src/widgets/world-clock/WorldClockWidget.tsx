@@ -92,6 +92,12 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
     setReferenceMode('custom')
   }
 
+  const handleShiftHours = (deltaHours: number) => {
+    const shifted = new Date(date.getTime() + deltaHours * 60 * 60 * 1000)
+    setCustomDateInput(toLocalDatetimeInputValue(shifted))
+    setReferenceMode('custom')
+  }
+
   const dateFieldId = useId()
   const addFieldId = useId()
 
@@ -133,7 +139,7 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
         <WorldClockMap date={date} cities={cities} homeCityId={localCity?.id} />
       </div>
 
-      <div className="flex items-end gap-1.5">
+      <div className="flex flex-wrap items-end gap-1.5">
         <Field label="Reference time" htmlFor={dateFieldId} className="min-w-0 flex-1">
           <Input
             id={dateFieldId}
@@ -143,6 +149,26 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
             className="w-full font-mono"
           />
         </Field>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => handleShiftHours(-1)}
+          aria-label="Shift back 1 hour"
+          className="h-8 shrink-0 px-2 font-mono"
+        >
+          −1h
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => handleShiftHours(1)}
+          aria-label="Shift forward 1 hour"
+          className="h-8 shrink-0 px-2 font-mono"
+        >
+          +1h
+        </Button>
         <Button
           type="button"
           size="sm"

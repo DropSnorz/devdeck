@@ -81,4 +81,54 @@ describe('WorldClockWidget', () => {
     expect(screen.getByText(/^live$/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^now$/i })).toBeDisabled()
   })
+
+  it('shifts the reference time forward by 1 hour', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const dateField = screen.getByLabelText(/reference time/i)
+    await user.clear(dateField)
+    await user.type(dateField, '2024-01-15T10:30')
+
+    await user.click(screen.getByRole('button', { name: /forward 1 hour/i }))
+
+    expect(dateField).toHaveValue('2024-01-15T11:30')
+  })
+
+  it('shifts the reference time back by 1 hour', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const dateField = screen.getByLabelText(/reference time/i)
+    await user.clear(dateField)
+    await user.type(dateField, '2024-01-15T10:30')
+
+    await user.click(screen.getByRole('button', { name: /back 1 hour/i }))
+
+    expect(dateField).toHaveValue('2024-01-15T09:30')
+  })
+
+  it('stacks repeated hour shifts', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const dateField = screen.getByLabelText(/reference time/i)
+    await user.clear(dateField)
+    await user.type(dateField, '2024-01-15T23:30')
+
+    await user.click(screen.getByRole('button', { name: /forward 1 hour/i }))
+    await user.click(screen.getByRole('button', { name: /forward 1 hour/i }))
+
+    // Crosses midnight into the next day, not just wrapping the hour.
+    expect(dateField).toHaveValue('2024-01-16T01:30')
+  })
+
+  it('switches out of live mode when shifting the hour from "now"', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /forward 1 hour/i }))
+
+    expect(screen.getByText(/previewing a custom time/i)).toBeInTheDocument()
+  })
 })
