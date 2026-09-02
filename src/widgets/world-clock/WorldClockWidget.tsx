@@ -103,38 +103,6 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="@container flex h-full flex-col gap-2 text-xs">
-      <div className="flex flex-wrap items-end gap-1.5">
-        <Field label="Add city" htmlFor={addFieldId} className="min-w-0 flex-1">
-          <select
-            id={addFieldId}
-            value={addValue}
-            onChange={(event) => setAddPick(event.target.value)}
-            disabled={availableToAdd.length === 0}
-            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
-          >
-            {availableToAdd.length === 0 ? (
-              <option value="">All cities added</option>
-            ) : (
-              availableToAdd.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.city}, {c.country}
-                </option>
-              ))
-            )}
-          </select>
-        </Field>
-        <Button
-          type="button"
-          size="sm"
-          onClick={handleAdd}
-          disabled={availableToAdd.length === 0}
-          className="h-8 shrink-0"
-        >
-          <Plus className="size-3.5" />
-          Add
-        </Button>
-      </div>
-
       <div className="hidden @xs:block aspect-[2/1] w-full shrink-0 overflow-hidden rounded-md bg-muted/20">
         <WorldClockMap date={date} cities={cities} homeCityId={localCity?.id} />
       </div>
@@ -201,6 +169,38 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
             onRemove={() => handleRemove(city.id)}
           />
         ))}
+      </div>
+
+      <div className="flex flex-wrap items-end gap-1.5">
+        <Field label="Add city" htmlFor={addFieldId} className="min-w-0 flex-1">
+          <select
+            id={addFieldId}
+            value={addValue}
+            onChange={(event) => setAddPick(event.target.value)}
+            disabled={availableToAdd.length === 0}
+            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
+          >
+            {availableToAdd.length === 0 ? (
+              <option value="">All cities added</option>
+            ) : (
+              availableToAdd.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.city}, {c.country}
+                </option>
+              ))
+            )}
+          </select>
+        </Field>
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleAdd}
+          disabled={availableToAdd.length === 0}
+          className="h-8 shrink-0"
+        >
+          <Plus className="size-3.5" />
+          Add
+        </Button>
       </div>
     </div>
   )
