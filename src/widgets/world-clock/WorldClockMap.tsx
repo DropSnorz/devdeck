@@ -30,13 +30,16 @@ export function WorldClockMap({ date, cities, homeCityId }: WorldClockMapProps) 
       <path
         d={WORLD_LAND_PATH}
         fillRule="evenodd"
-        className="fill-muted stroke-border"
+        className="fill-muted-foreground/25 stroke-muted-foreground/40"
         strokeWidth={0.3}
         strokeLinejoin="round"
       />
 
-      <path d={nightPath} className="fill-foreground/15" />
-      <path d={terminatorPath} className="fill-none stroke-foreground/25" strokeWidth={0.5} />
+      {/* A fixed dark tint rather than a theme token: night should read the
+          same regardless of light/dark mode, not flip toward white the way
+          `fill-foreground` would in dark mode. */}
+      <path d={nightPath} fill="rgb(2 6 23 / 0.32)" />
+      <path d={terminatorPath} fill="none" stroke="rgb(2 6 23 / 0.45)" strokeWidth={0.5} />
 
       {cities.map((city) => {
         const { x, y } = project({ lon: city.lon, lat: city.lat })
