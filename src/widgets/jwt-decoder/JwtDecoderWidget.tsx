@@ -1,10 +1,9 @@
 import { useEffect, useId, useMemo, useState } from 'react'
-import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite'
-import 'react-json-view-lite/dist/index.css'
-import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/utils'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { DataTree } from '@/components/data-tree/DataTree'
+import { buildJsonTree } from '@/components/data-tree/treeModel'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Field } from '@/components/Field'
 import { Textarea } from '@/components/ui/textarea'
@@ -102,7 +101,6 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
   const [secret, setSecret] = useWidgetState(instanceId, 'secret', '')
   const [encoded, setEncoded] = useWidgetState<EncodedState>(instanceId, 'encoded', EMPTY_ENCODED)
 
-  const isDark = useIsDarkTheme()
   useWidgetDirty(
     instanceId,
     token.length > 0 ||
@@ -169,7 +167,6 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
     }
   }, [mode, headerJson, payloadJson, secret, setEncoded])
 
-  const style = isDark ? darkStyles : defaultStyles
   const headerId = useId()
   const payloadId = useId()
   const secretId = useId()
@@ -201,18 +198,8 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
                * captured "now" — see ExpiryBadge for why this avoids an
                * effect. */}
               <ExpiryBadge key={token} payload={decoded.payload} />
-              <JsonBlock
-                title="Header"
-                data={decoded.header}
-                text={JSON.stringify(decoded.header, null, 2)}
-                style={style}
-              />
-              <JsonBlock
-                title="Payload"
-                data={decoded.payload}
-                text={JSON.stringify(decoded.payload, null, 2)}
-                style={style}
-              />
+              <JsonBlock title="Header" data={decoded.header} text={JSON.stringify(decoded.header, null, 2)} />
+              <JsonBlock title="Payload" data={decoded.payload} text={JSON.stringify(decoded.payload, null, 2)} />
               <p className="text-[11px] text-muted-foreground">
                 Signature not verified.
               </p>
@@ -279,17 +266,7 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
 /** A JSON section with its own copy button — copies the formatted JSON text
  * directly, independent of whatever the tree view happens to have
  * collapsed. */
-function JsonBlock({
-  title,
-  data,
-  text,
-  style,
-}: {
-  title: string
-  data: unknown
-  text: string
-  style: typeof defaultStyles
-}) {
+function JsonBlock({ title, data, text }: { title: string; data: unknown; text: string }) {
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
@@ -297,7 +274,11 @@ function JsonBlock({
         <CopyButton value={text} label="" ariaLabel={`Copy ${title.toLowerCase()}`} />
       </div>
       {typeof data === 'object' && data !== null ? (
-        <JsonView data={data} style={style} />
+        // Same tree as the JSON/XML widgets, without its own chrome or
+        // scrollbox: these blocks are short and stack inside the panel's
+        // own scroll area. It earns its place here for `iat`/`exp`, which
+        // the tree annotates with the instant they decode to.
+        <DataTree root={buildJsonTree(data)} label={`${title} tree`} toolbar={false} statusBar={false} scroll={false} />
       ) : (
         <pre className="font-mono text-xs">{JSON.stringify(data)}</pre>
       )}

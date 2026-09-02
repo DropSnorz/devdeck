@@ -1,25 +1,36 @@
 import { useMemo } from 'react'
-import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite'
-import 'react-json-view-lite/dist/index.css'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { CodeEditor } from '@/components/CodeEditor'
+import { DataTree } from '@/components/data-tree/DataTree'
+import { buildXmlTree } from '@/components/data-tree/treeModel'
 import { Textarea } from '@/components/ui/textarea'
-import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
-import { minifyXml, parseXml, prettyPrintXml, xmlToTree } from './xmlFormat'
+import { minifyXml, parseXml, prettyPrintXml } from './xmlFormat'
 
 type ViewMode = 'plain' | 'tree' | 'pretty' | 'minified'
 
-const SAMPLE = '<root>\n  <hello>world</hello>\n</root>'
+/** Sample chosen to exercise the tree view: attributes, repeated sibling
+ * tags, a comment, and text-only leaves, so the widget demonstrates itself
+ * on first open. */
+const SAMPLE = `<catalog updated="2024-03-18">
+  <!-- two entries -->
+  <book id="bk101" price="29.99">
+    <title>XML Developer's Guide</title>
+    <author>Gambardella, Matthew</author>
+  </book>
+  <book id="bk102" price="12.50">
+    <title>Midnight Rain</title>
+    <author>Ralls, Kim</author>
+  </book>
+</catalog>`
 
 export default function XmlFormatterWidget({ instanceId }: WidgetProps) {
   const [input, setInput] = useWidgetState(instanceId, 'input', SAMPLE)
   const [viewMode, setViewMode] = useWidgetState<ViewMode>(instanceId, 'viewMode', 'plain')
-  const isDark = useIsDarkTheme()
   useWidgetDirty(instanceId, input !== SAMPLE)
 
   const { doc, error } = useMemo(() => {
@@ -34,10 +45,12 @@ export default function XmlFormatterWidget({ instanceId }: WidgetProps) {
     return viewMode === 'minified' ? minifyXml(input, doc) : prettyPrintXml(input, doc)
   }, [doc, hasData, input, viewMode])
 
-  const treeData = useMemo(() => {
-    if (!hasData || !doc) return null
-    return xmlToTree(doc)
-  }, [doc, hasData])
+  // Built straight off the parsed DOM rather than through a JSON conversion,
+  // so elements, attributes, text, and comments each keep their own identity
+  // in the tree instead of collapsing into `@attr`/`#text` object keys.
+  const tree = useMemo(() => (hasData && doc ? buildXmlTree(doc) : null), [doc, hasData])
+
+  const showTree = viewMode === 'tree' && tree !== null
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -60,23 +73,25 @@ export default function XmlFormatterWidget({ instanceId }: WidgetProps) {
         className="min-h-0 flex-1"
       />
       {viewMode !== 'plain' && (
-        <div className="relative min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background p-2 dark:bg-muted/40">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-background p-2 dark:bg-muted/40">
           {error ? (
             <ErrorMessage>{error}</ErrorMessage>
           ) : !hasData ? (
             <p className="text-xs text-muted-foreground">Output will appear here</p>
-          ) : viewMode === 'tree' && treeData ? (
-            <JsonView data={treeData} style={isDark ? darkStyles : defaultStyles} />
+          ) : showTree ? (
+            <DataTree root={tree} label="XML tree" className="flex-1" />
           ) : (
-            <Textarea
-              readOnly
-              value={formattedOutput}
-              spellCheck={false}
-              aria-label="XML output"
-              className="h-full w-full resize-none border-0 bg-transparent p-0 pr-14 font-mono text-xs"
-            />
+            <>
+              <Textarea
+                readOnly
+                value={formattedOutput}
+                spellCheck={false}
+                aria-label="XML output"
+                className="h-full w-full resize-none overflow-auto border-0 bg-transparent p-0 pr-14 font-mono text-xs"
+              />
+              <CopyButton value={formattedOutput} className="absolute right-1 top-1 bg-inherit" />
+            </>
           )}
-          {hasData && <CopyButton value={formattedOutput} className="absolute right-1 top-1 bg-inherit" />}
         </div>
       )}
     </div>

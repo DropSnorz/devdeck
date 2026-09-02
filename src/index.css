@@ -39,6 +39,18 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-tree-key: var(--tree-key);
+  --color-tree-tag: var(--tree-tag);
+  --color-tree-attr: var(--tree-attr);
+  --color-tree-string: var(--tree-string);
+  --color-tree-number: var(--tree-number);
+  --color-tree-boolean: var(--tree-boolean);
+  --color-tree-null: var(--tree-null);
+  --color-tree-punct: var(--tree-punct);
+  --color-tree-comment: var(--tree-comment);
+  --color-tree-warn: var(--tree-warn);
+  --color-tree-guide: var(--tree-guide);
+  --color-tree-guide-active: var(--tree-guide-active);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -97,6 +109,23 @@
   --border: var(--color-slate-200);
   --input: var(--color-slate-300);
   --ring: var(--color-slate-500);
+
+  /* Tree syntax palette (src/components/data-tree). Structural colors rather
+   * than semantic roles: the JSON and XML tree views need hues that separate
+   * value types at a glance, which background/foreground/muted can't
+   * express. Kept as tokens so both trees stay in step across both themes. */
+  --tree-key: var(--color-slate-700);
+  --tree-tag: var(--color-indigo-600);
+  --tree-attr: var(--color-cyan-700);
+  --tree-string: var(--color-emerald-700);
+  --tree-number: var(--color-violet-600);
+  --tree-boolean: var(--color-amber-700);
+  --tree-null: var(--color-slate-400);
+  --tree-punct: var(--color-slate-400);
+  --tree-comment: var(--color-slate-500);
+  --tree-warn: var(--color-amber-600);
+  --tree-guide: var(--color-slate-200);
+  --tree-guide-active: var(--color-blue-500);
 }
 
 .dark {
@@ -122,6 +151,19 @@
   --border: var(--color-slate-800);
   --input: var(--color-slate-700);
   --ring: var(--color-slate-500);
+
+  --tree-key: var(--color-slate-200);
+  --tree-tag: var(--color-indigo-300);
+  --tree-attr: var(--color-cyan-300);
+  --tree-string: var(--color-emerald-400);
+  --tree-number: var(--color-violet-400);
+  --tree-boolean: var(--color-amber-400);
+  --tree-null: var(--color-slate-500);
+  --tree-punct: var(--color-slate-600);
+  --tree-comment: var(--color-slate-500);
+  --tree-warn: var(--color-amber-400);
+  --tree-guide: var(--color-slate-800);
+  --tree-guide-active: var(--color-blue-400);
 }
 
 body {

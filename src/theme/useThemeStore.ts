@@ -66,8 +66,8 @@ window
  * theme choice *and* OS-level changes while on "system", unlike reading
  * `theme` alone. For anything that needs to pick between two JS-level style
  * objects rather than reaching for Tailwind's `dark:` variant — e.g.
- * react-json-view-lite's `darkStyles`/`defaultStyles`, which the `.dark`
- * class has no effect on. */
+ * CodeMirror's highlight styles, which are built in JS and so can't respond
+ * to the `.dark` class on their own. */
 export function useIsDarkTheme(): boolean {
   const theme = useThemeStore((state) => state.theme)
   const systemPrefersDark = useMediaQuery('(prefers-color-scheme: dark)')

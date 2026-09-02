@@ -11,7 +11,7 @@ describe('JsonFormatterWidget', () => {
     // CodeMirror renders each line as its own DOM node, so exact-whitespace
     // equality (the old <textarea>.toHaveValue check) doesn't carry over —
     // a substring check on the rendered text content is the reliable check.
-    expect(screen.getByRole('textbox', { name: /json input/i })).toHaveTextContent('"hello"')
+    expect(screen.getByRole('textbox', { name: /json input/i })).toHaveTextContent('"localgrid"')
     // Plain is just the input editor — no tree/output panel rendered at all.
     expect(screen.queryByRole('tree')).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /json output/i })).not.toBeInTheDocument()
@@ -24,9 +24,9 @@ describe('JsonFormatterWidget', () => {
     await user.click(screen.getByRole('button', { name: 'Tree' }))
 
     // Scoped to the tree, since the input editor's own text content now
-    // also literally contains `"world"` (it's a real contenteditable DOM
+    // also literally contains `"localgrid"` (it's a real contenteditable DOM
     // tree, unlike the old <textarea> whose .value wasn't text-queryable).
-    expect(within(screen.getByRole('tree')).getByText('"world"')).toBeInTheDocument()
+    expect(within(screen.getByRole('tree')).getByText('"localgrid"')).toBeInTheDocument()
   })
 
   it('shows an error instead of the tree for invalid JSON', async () => {
@@ -37,7 +37,6 @@ describe('JsonFormatterWidget', () => {
     const input = screen.getByRole('textbox', { name: /json input/i })
     setCodeMirrorValue(input, '{not valid json')
 
-    expect(screen.queryByText('"world"')).not.toBeInTheDocument()
     expect(screen.queryByRole('tree')).not.toBeInTheDocument()
     // The exact message comes from the engine's own JSON.parse error and
     // isn't worth pinning down exactly — just confirm something error-shaped
@@ -50,14 +49,13 @@ describe('JsonFormatterWidget', () => {
     render(<JsonFormatterWidget instanceId="test" mode="grid" />)
 
     await user.click(screen.getByRole('button', { name: 'Minified' }))
+    setCodeMirrorValue(screen.getByRole('textbox', { name: /json input/i }), '{\n  "hello": "world"\n}')
 
     // Output is a plain readOnly <textarea>, not a CodeMirror instance —
     // its current value lives in the DOM `.value` property (jest-dom's
     // toHaveValue), not as text content the way CodeMirror's contenteditable
     // renders its lines.
-    expect(screen.getByRole('textbox', { name: /json output/i })).toHaveValue(
-      '{"hello":"world"}',
-    )
+    expect(screen.getByRole('textbox', { name: /json output/i })).toHaveValue('{"hello":"world"}')
   })
 
   it('treats a non-object/array JSON value as valid but not tree-renderable', async () => {
@@ -80,5 +78,28 @@ describe('JsonFormatterWidget', () => {
     setCodeMirrorValue(screen.getByRole('textbox', { name: /json input/i }), '')
 
     expect(screen.getByText(/output will appear here/i)).toBeInTheDocument()
+  })
+
+  it('keeps a branch collapsed across edits to unrelated parts of the document', async () => {
+    const user = userEvent.setup()
+    render(<JsonFormatterWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Tree' }))
+    setCodeMirrorValue(
+      screen.getByRole('textbox', { name: /json input/i }),
+      '{"kept":1,"nested":{"deep":"value"}}',
+    )
+    const tree = screen.getByRole('tree')
+    await user.click(within(tree).getByRole('button', { name: /collapse nested/i }))
+    expect(within(tree).queryByText('"value"')).not.toBeInTheDocument()
+
+    // Expansion is keyed on the node's path, and the tree is rebuilt from
+    // scratch on every keystroke — an edit elsewhere must not pop the
+    // collapsed branch back open.
+    setCodeMirrorValue(
+      screen.getByRole('textbox', { name: /json input/i }),
+      '{"kept":2,"nested":{"deep":"value"}}',
+    )
+    expect(within(screen.getByRole('tree')).queryByText('"value"')).not.toBeInTheDocument()
   })
 })

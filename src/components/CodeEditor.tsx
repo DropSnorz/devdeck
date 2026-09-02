@@ -61,9 +61,7 @@ export function useAppEditorTheme(isDark: boolean): Extension {
     // .dark in index.css), --color-blue-600 etc. are Tailwind's raw palette
     // swatches — fixed hex values that never change between themes. The
     // 600-level shades read fine on a light background but lose contrast
-    // on a dark one, so pick a lighter shade per token when isDark, mirroring
-    // the isDark ? darkStyles : defaultStyles split already used for
-    // react-json-view-lite in JsonFormatterWidget.
+    // on a dark one, so pick a lighter shade per token when isDark.
     const highlightStyle = HighlightStyle.define([
       { tag: tags.propertyName, color: isDark ? 'var(--color-blue-400)' : 'var(--color-blue-600)' },
       { tag: tags.string, color: isDark ? 'var(--color-amber-400)' : 'var(--color-amber-600)' },
