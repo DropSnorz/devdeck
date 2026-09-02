@@ -72,4 +72,17 @@ describe('computeNightPolygon', () => {
     const juneClose = computeNightPolygon(new Date('2024-06-21T00:00:00Z'))
     expect(juneClose[juneClose.length - 1].lat).toBe(-90)
   })
+
+  it('falls back to the default step count for a non-positive, non-finite, or non-integer steps', () => {
+    const date = new Date('2024-06-21T00:00:00Z')
+    const withDefault = computeNightPolygon(date)
+    for (const bad of [0, -5, NaN, Infinity, -Infinity]) {
+      expect(computeNightPolygon(date, bad)).toEqual(withDefault)
+    }
+  })
+
+  it('floors a fractional steps instead of producing a fractional loop bound', () => {
+    const date = new Date('2024-06-21T00:00:00Z')
+    expect(computeNightPolygon(date, 36.9)).toHaveLength(36 + 1 + 2)
+  })
 })

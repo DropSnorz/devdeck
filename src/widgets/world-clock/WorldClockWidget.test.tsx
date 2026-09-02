@@ -4,10 +4,15 @@ import userEvent from '@testing-library/user-event'
 import WorldClockWidget from './WorldClockWidget'
 
 // Default rows depend on the host's own time zone (see defaultCityIds), so
-// assertions here avoid relying on which cities start selected — tests add
-// and remove a city that would only ever be a default in the extremely
-// unlikely case this suite runs with the system clock set to
-// Australia/Sydney.
+// tests here never hardcode which city to add/remove — a city that's a
+// default on one host's clock could be missing from the picker on
+// another's. Instead they read whichever option the picker actually
+// offers first and drive assertions off that, so the suite is correct
+// under any host time zone rather than merely unlikely to fail under most.
+function firstAvailableCity(): { id: string; name: string } {
+  const option = screen.getAllByRole('option')[0] as HTMLOptionElement
+  return { id: option.value, name: option.textContent?.split(',')[0]?.trim() ?? '' }
+}
 
 describe('WorldClockWidget', () => {
   it('renders the add-city picker and a reference time field', () => {
@@ -21,38 +26,41 @@ describe('WorldClockWidget', () => {
     const user = userEvent.setup()
     render(<WorldClockWidget instanceId="test" mode="grid" />)
 
-    await user.selectOptions(screen.getByLabelText(/add city/i), 'sydney')
+    const { id, name } = firstAvailableCity()
+    await user.selectOptions(screen.getByLabelText(/add city/i), id)
     await user.click(screen.getByRole('button', { name: /^add$/i }))
 
-    expect(screen.getByText('Sydney')).toBeInTheDocument()
+    expect(screen.getByText(name)).toBeInTheDocument()
     // Removed from the picker once it's already on the board.
-    expect(screen.queryByRole('option', { name: /sydney/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: new RegExp(`^${name},`) })).not.toBeInTheDocument()
   })
 
   it('removes a city from the list', async () => {
     const user = userEvent.setup()
     render(<WorldClockWidget instanceId="test" mode="grid" />)
 
-    await user.selectOptions(screen.getByLabelText(/add city/i), 'sydney')
+    const { id, name } = firstAvailableCity()
+    await user.selectOptions(screen.getByLabelText(/add city/i), id)
     await user.click(screen.getByRole('button', { name: /^add$/i }))
-    expect(screen.getByText('Sydney')).toBeInTheDocument()
+    expect(screen.getByText(name)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /remove sydney/i }))
+    await user.click(screen.getByRole('button', { name: `Remove ${name}` }))
 
-    expect(screen.queryByText('Sydney')).not.toBeInTheDocument()
+    expect(screen.queryByText(name)).not.toBeInTheDocument()
     // Back in the picker, available to add again.
-    expect(screen.getByRole('option', { name: /sydney/i })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: new RegExp(`^${name},`) })).toBeInTheDocument()
   })
 
   it('does not add the same city twice', async () => {
     const user = userEvent.setup()
     render(<WorldClockWidget instanceId="test" mode="grid" />)
 
-    await user.selectOptions(screen.getByLabelText(/add city/i), 'sydney')
+    const { id, name } = firstAvailableCity()
+    await user.selectOptions(screen.getByLabelText(/add city/i), id)
     await user.click(screen.getByRole('button', { name: /^add$/i }))
     await user.click(screen.getByRole('button', { name: /^add$/i }))
 
-    expect(screen.getAllByText('Sydney')).toHaveLength(1)
+    expect(screen.getAllByText(name)).toHaveLength(1)
   })
 
   it('switches to previewing a custom time when the reference time is edited', async () => {
@@ -128,6 +136,50 @@ describe('WorldClockWidget', () => {
     render(<WorldClockWidget instanceId="test" mode="grid" />)
 
     await user.click(screen.getByRole('button', { name: /forward 1 hour/i }))
+
+    expect(screen.getByText(/previewing a custom time/i)).toBeInTheDocument()
+  })
+
+  it('does not switch out of live mode while the reference time field is merely cleared', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const dateField = screen.getByLabelText(/reference time/i)
+    await user.clear(dateField)
+
+    // An empty, not-yet-a-date draft shouldn't itself count as "previewing
+    // a custom time" — that label (and the map/list it drives) should only
+    // apply once a real instant has actually been entered.
+    expect(screen.getByText(/^live$/i)).toBeInTheDocument()
+    expect(screen.queryByText(/previewing a custom time/i)).not.toBeInTheDocument()
+  })
+
+  it('resets an abandoned empty edit back to the current time on blur', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const dateField = screen.getByLabelText(/reference time/i)
+    await user.clear(dateField)
+    expect(dateField).toHaveValue('')
+
+    await user.tab()
+
+    expect(dateField).not.toHaveValue('')
+    expect(screen.getByText(/^live$/i)).toBeInTheDocument()
+  })
+
+  it('keeps the previous custom time in effect while a new edit is still incomplete', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const dateField = screen.getByLabelText(/reference time/i)
+    await user.clear(dateField)
+    await user.type(dateField, '2024-01-15T10:30')
+    expect(screen.getByText(/previewing a custom time/i)).toBeInTheDocument()
+
+    // Clearing again to start a fresh edit shouldn't discard the
+    // already-applied preview or freeze it on a stale instant.
+    await user.clear(dateField)
 
     expect(screen.getByText(/previewing a custom time/i)).toBeInTheDocument()
   })

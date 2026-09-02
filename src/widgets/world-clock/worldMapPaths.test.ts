@@ -54,13 +54,18 @@ describe('WORLD_LAND_PATH', () => {
   })
 
   it('stays within the map viewBox', () => {
-    const numbers = WORLD_LAND_PATH.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? []
-    // Coordinates alternate x,y — every value here is within a shared
-    // [0, max(MAP_WIDTH, MAP_HEIGHT)] bound, so one loose check per number
-    // is enough without having to split the pairs out.
-    for (const n of numbers) {
-      expect(n).toBeGreaterThanOrEqual(0)
-      expect(n).toBeLessThanOrEqual(MAP_WIDTH)
+    // Every coordinate pair is written as "x,y" (from an M or L command,
+    // e.g. "M12.3,45.6" or "L12.3,45.6") — capture each pair together so x
+    // and y are checked against their own axis bound rather than both
+    // against the wider MAP_WIDTH, which would let a corrupt y up to
+    // MAP_WIDTH (double the real MAP_HEIGHT) slip past unnoticed.
+    const pairs = [...WORLD_LAND_PATH.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)]
+    expect(pairs.length).toBeGreaterThan(100)
+    for (const [, x, y] of pairs) {
+      expect(Number(x)).toBeGreaterThanOrEqual(0)
+      expect(Number(x)).toBeLessThanOrEqual(MAP_WIDTH)
+      expect(Number(y)).toBeGreaterThanOrEqual(0)
+      expect(Number(y)).toBeLessThanOrEqual(MAP_HEIGHT)
     }
   })
 })

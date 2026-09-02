@@ -45,10 +45,31 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
   // either, since the default itself depends on the browser's time zone.
   const [initialSelectedIds] = useWidgetState<string[]>(instanceId, 'initialSelectedIds', selectedIds)
   const [referenceMode, setReferenceMode] = useWidgetState<'live' | 'custom'>(instanceId, 'referenceMode', 'live')
+  // The field's own raw text (whatever's currently typed, including
+  // transiently empty/invalid while mid-edit) — kept separate from the
+  // *applied* instant below so a not-yet-valid edit never gets rendered as
+  // if it were a committed custom time.
   const [customDateInput, setCustomDateInput] = useWidgetState(instanceId, 'customDateInput', () =>
     toLocalDatetimeInputValue(new Date()),
   )
+  // The last successfully-parsed custom instant, in ms — null until the
+  // visitor has actually entered one. Only this (never customDateInput
+  // directly) feeds `date` below, so an empty/invalid draft simply leaves
+  // the previously-applied time in place instead of falling back to a
+  // `liveNow` that's gone stale the moment referenceMode left 'live'.
+  const [customDateMs, setCustomDateMs] = useWidgetState<number | null>(instanceId, 'customDateMs', null)
   const [addPick, setAddPick] = useState('')
+  // Native `datetime-local` inputs only ever fire `input`/`change` with a
+  // complete valid value or an empty string — never a partial one — so the
+  // only "invalid" state in practice is empty, typically while the visitor
+  // has cleared the field to type a full replacement. While focused, the
+  // field always echoes back exactly what's typed (see the `value` prop
+  // below); this is what makes that possible without a live tick fighting
+  // the edit by forcing the field back to "now" mid-keystroke. Plain state
+  // rather than a ref (contrast NumberField's `focused`) because it has to
+  // feed the `value` prop itself, and a ref read during render can't
+  // reliably trigger the re-render that value change needs.
+  const [dateFieldFocused, setDateFieldFocused] = useState(false)
 
   useWidgetDirty(instanceId, !sameIds(selectedIds, initialSelectedIds) || referenceMode === 'custom')
 
@@ -61,9 +82,8 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
 
   const date = useMemo(() => {
     if (referenceMode === 'live') return new Date(liveNow)
-    const parsed = new Date(customDateInput)
-    return Number.isNaN(parsed.getTime()) ? new Date(liveNow) : parsed
-  }, [referenceMode, liveNow, customDateInput])
+    return customDateMs !== null ? new Date(customDateMs) : new Date(liveNow)
+  }, [referenceMode, liveNow, customDateMs])
 
   const cities = useMemo(() => selectedIds.map(getCity).filter((c): c is City => c !== undefined), [selectedIds])
   const localCity = useMemo(() => WORLD_CITIES.find((c) => c.tz === LOCAL_TIME_ZONE) ?? null, [])
@@ -84,17 +104,36 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
     const now = new Date()
     setLiveNow(now.getTime())
     setCustomDateInput(toLocalDatetimeInputValue(now))
+    setCustomDateMs(null)
     setReferenceMode('live')
   }
 
   const handleCustomChange = (value: string) => {
     setCustomDateInput(value)
-    setReferenceMode('custom')
+    const parsed = new Date(value)
+    // Only a fully-valid edit commits: an empty or unparseable draft (see
+    // `dateFieldFocused` above) just sits there, still visible, without
+    // touching `referenceMode` or the applied instant.
+    if (!Number.isNaN(parsed.getTime())) {
+      setCustomDateMs(parsed.getTime())
+      setReferenceMode('custom')
+    }
+  }
+
+  // Reached on blur with nothing valid ever entered this edit (still
+  // empty, or an abandoned partial) — snaps the field back to whatever
+  // instant is actually in effect instead of leaving it looking broken.
+  const handleDateBlur = () => {
+    setDateFieldFocused(false)
+    if (Number.isNaN(new Date(customDateInput).getTime())) {
+      setCustomDateInput(toLocalDatetimeInputValue(date))
+    }
   }
 
   const handleShiftHours = (deltaHours: number) => {
     const shifted = new Date(date.getTime() + deltaHours * 60 * 60 * 1000)
     setCustomDateInput(toLocalDatetimeInputValue(shifted))
+    setCustomDateMs(shifted.getTime())
     setReferenceMode('custom')
   }
 
@@ -112,8 +151,10 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
           <Input
             id={dateFieldId}
             type="datetime-local"
-            value={referenceMode === 'live' ? toLocalDatetimeInputValue(date) : customDateInput}
+            value={referenceMode === 'live' && !dateFieldFocused ? toLocalDatetimeInputValue(date) : customDateInput}
             onChange={(event) => handleCustomChange(event.target.value)}
+            onFocus={() => setDateFieldFocused(true)}
+            onBlur={handleDateBlur}
             className="w-full font-mono"
           />
         </Field>

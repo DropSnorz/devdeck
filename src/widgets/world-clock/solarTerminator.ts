@@ -60,13 +60,21 @@ function terminatorLatitudeDeg(lon: number, subsolarLon: number, declDeg: number
 /** Lon/lat polygon covering the earth's current night side, for shading on
  * an equirectangular map: traces the terminator curve across every
  * longitude, then closes the shape across whichever pole is presently
- * dark. */
+ * dark.
+ *
+ * `steps` is normalized rather than trusted: 0 would divide-by-zero into
+ * NaN coordinates and a non-finite value (Infinity, NaN) would spin the
+ * loop below forever. No caller in this codebase passes anything but a
+ * literal positive integer today, but this function is the one place that
+ * math could ever reach a widget's map, so it's worth guarding here once
+ * rather than at every call site. */
 export function computeNightPolygon(date: Date, steps = 72): LonLat[] {
+  const stepCount = Number.isFinite(steps) && steps >= 1 ? Math.floor(steps) : 72
   const decl = solarDeclinationDeg(date)
   const subsolarLon = subsolarLongitudeDeg(date)
   const curve: LonLat[] = []
-  for (let i = 0; i <= steps; i++) {
-    const lon = -180 + (360 * i) / steps
+  for (let i = 0; i <= stepCount; i++) {
+    const lon = -180 + (360 * i) / stepCount
     curve.push({ lon, lat: terminatorLatitudeDeg(lon, subsolarLon, decl) })
   }
   // At lat=90 (north pole), cosZenith reduces to sin(decl) — negative
