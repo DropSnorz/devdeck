@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CONTINENTS, MAP_HEIGHT, MAP_WIDTH, project, toClosedPath, toOpenPath } from './worldMapPaths'
+import { MAP_HEIGHT, MAP_WIDTH, WORLD_LAND_PATH, project, toClosedPath, toOpenPath } from './worldMapPaths'
 
 describe('project', () => {
   it('maps (lon 0, lat 0) to the center of the viewBox', () => {
@@ -39,18 +39,28 @@ describe('toClosedPath / toOpenPath', () => {
   })
 })
 
-describe('CONTINENTS', () => {
-  it('gives every continent outline at least 3 points to form a shape', () => {
-    for (const outline of CONTINENTS) {
-      expect(outline.length).toBeGreaterThanOrEqual(3)
-    }
+describe('WORLD_LAND_PATH', () => {
+  it('is a non-trivial, well-formed multi-subpath "d" string', () => {
+    expect(WORLD_LAND_PATH.length).toBeGreaterThan(1000)
+    expect(WORLD_LAND_PATH.startsWith('M')).toBe(true)
+    expect(WORLD_LAND_PATH.endsWith('Z')).toBe(true)
   })
 
-  it('produces a valid closed path for every continent', () => {
-    for (const outline of CONTINENTS) {
-      const d = toClosedPath(outline)
-      expect(d.startsWith('M')).toBe(true)
-      expect(d.endsWith('Z')).toBe(true)
+  it('has one M (move-to) opening every subpath it closes with Z', () => {
+    const moveCount = WORLD_LAND_PATH.match(/M/g)?.length ?? 0
+    const closeCount = WORLD_LAND_PATH.match(/Z/g)?.length ?? 0
+    expect(moveCount).toBeGreaterThan(100)
+    expect(moveCount).toBe(closeCount)
+  })
+
+  it('stays within the map viewBox', () => {
+    const numbers = WORLD_LAND_PATH.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? []
+    // Coordinates alternate x,y — every value here is within a shared
+    // [0, max(MAP_WIDTH, MAP_HEIGHT)] bound, so one loose check per number
+    // is enough without having to split the pairs out.
+    for (const n of numbers) {
+      expect(n).toBeGreaterThanOrEqual(0)
+      expect(n).toBeLessThanOrEqual(MAP_WIDTH)
     }
   })
 })

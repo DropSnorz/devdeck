@@ -1,6 +1,6 @@
 import type { City } from './cities'
 import { computeNightPolygon, isNight } from './solarTerminator'
-import { CONTINENTS, MAP_HEIGHT, MAP_WIDTH, project, toClosedPath, toOpenPath } from './worldMapPaths'
+import { MAP_HEIGHT, MAP_WIDTH, WORLD_LAND_PATH, project, toClosedPath, toOpenPath } from './worldMapPaths'
 
 interface WorldClockMapProps {
   date: Date
@@ -10,10 +10,10 @@ interface WorldClockMapProps {
   homeCityId?: string | null
 }
 
-/** Minimal equirectangular world map: low-poly continent silhouettes, a
+/** Minimal equirectangular world map: real (simplified) coastlines, a
  * night-side shading that tracks the real solar terminator for `date`, and
  * one marker per selected city colored by whether it's currently day or
- * night there. Purely decorative/illustrative, not a precise atlas. */
+ * night there. */
 export function WorldClockMap({ date, cities, homeCityId }: WorldClockMapProps) {
   const nightPath = toClosedPath(computeNightPolygon(date))
   const terminatorPath = toOpenPath(computeNightPolygon(date).slice(0, -2))
@@ -27,9 +27,13 @@ export function WorldClockMap({ date, cities, homeCityId }: WorldClockMapProps) 
     >
       <rect x={0} y={0} width={MAP_WIDTH} height={MAP_HEIGHT} className="fill-background" />
 
-      {CONTINENTS.map((outline, index) => (
-        <path key={index} d={toClosedPath(outline)} className="fill-muted stroke-border" strokeWidth={0.5} />
-      ))}
+      <path
+        d={WORLD_LAND_PATH}
+        fillRule="evenodd"
+        className="fill-muted stroke-border"
+        strokeWidth={0.3}
+        strokeLinejoin="round"
+      />
 
       <path d={nightPath} className="fill-foreground/15" />
       <path d={terminatorPath} className="fill-none stroke-foreground/25" strokeWidth={0.5} />
