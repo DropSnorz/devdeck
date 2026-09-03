@@ -85,7 +85,9 @@ describe('UnixPermissionsWidget', () => {
   it('flags setuid combined with world-writable as the top danger', () => {
     render(<UnixPermissionsWidget instanceId="test" mode="grid" />)
 
-    fireEvent.change(octalField(), { target: { value: '4646' } })
+    // Owner execute must be on too: setuid on a file nobody can execute has
+    // no effect, so it doesn't reach "severe risk" (see permissions.test.ts).
+    fireEvent.change(octalField(), { target: { value: '4746' } })
 
     expect(screen.getByText(/setuid combined with world-writable/i)).toBeInTheDocument()
   })
@@ -98,7 +100,7 @@ describe('UnixPermissionsWidget', () => {
     await user.clear(targetInput)
     await user.type(targetInput, 'script.sh')
 
-    expect(screen.getByText('chmod 644 script.sh')).toBeInTheDocument()
-    expect(screen.getByText('chmod u=rw,g=r,o=r script.sh')).toBeInTheDocument()
+    expect(screen.getByText("chmod 644 -- 'script.sh'")).toBeInTheDocument()
+    expect(screen.getByText("chmod u=rw,g=r,o=r -- 'script.sh'")).toBeInTheDocument()
   })
 })

@@ -105,7 +105,7 @@ export function toSymbolic(permissions: Permissions): string {
   return `${permissions.fileType}${owner}${group}${other}`
 }
 
-const SYMBOLIC_RE = /^([-dl]?)([r-])([w-])([xsSt-])([r-])([w-])([xsSt-])([r-])([w-])([xtT-])$/
+const SYMBOLIC_RE = /^([-dl]?)([r-])([w-])([xsS-])([r-])([w-])([xsS-])([r-])([w-])([xtT-])$/
 
 /** Parses `ls -l`-style symbolic notation, with or without the leading
  * file-type character (so both "drwxr-xr-x" and "rwxr-xr-x" are accepted).
@@ -136,18 +136,29 @@ function triadToSymbolicAssignment(triad: PermissionTriad): string {
   return `${triad.read ? 'r' : ''}${triad.write ? 'w' : ''}${triad.execute ? 'x' : ''}`
 }
 
+/** Quotes `value` as a single literal shell argument (POSIX single-quoting,
+ * escaping any embedded `'`), so a target like `report; rm -rf ~` renders
+ * as an inert string instead of a second command a reader could
+ * accidentally run by pasting the generated command. */
+function quoteShellArg(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`
+}
+
 /** `chmod` invocations that reproduce `permissions`: the numeric form
  * (always unambiguous) and the equivalent `u=/g=/o=` symbolic assignment
  * form, with special-bit letters folded into their conventional clause
- * (setuid into `u=`, setgid into `g=`, sticky into `o=`). */
+ * (setuid into `u=`, setgid into `g=`, sticky into `o=`). `target` is
+ * shell-quoted and preceded by `--` so it's always treated as a literal
+ * operand, never as a flag or a second command. */
 export function toChmodCommands(permissions: Permissions, target = 'file'): { numeric: string; symbolic: string } {
   const owner = triadToSymbolicAssignment(permissions.owner) + (permissions.special.setuid ? 's' : '')
   const group = triadToSymbolicAssignment(permissions.group) + (permissions.special.setgid ? 's' : '')
   const other = triadToSymbolicAssignment(permissions.other) + (permissions.special.sticky ? 't' : '')
+  const quotedTarget = quoteShellArg(target)
 
   return {
-    numeric: `chmod ${toOctal(permissions)} ${target}`,
-    symbolic: `chmod u=${owner},g=${group},o=${other} ${target}`,
+    numeric: `chmod ${toOctal(permissions)} -- ${quotedTarget}`,
+    symbolic: `chmod u=${owner},g=${group},o=${other} -- ${quotedTarget}`,
   }
 }
 
@@ -163,24 +174,41 @@ function fileTypeNoun(fileType: FileType): string {
   return fileType === 'd' ? 'directory' : fileType === 'l' ? 'symlink' : 'file'
 }
 
+/** Whether `permissions` grants execute to any of the three classes.
+ * Determines whether a setuid/setgid bit has any real effect: the file can
+ * be run (and so the special bit takes hold) as soon as *any* class can
+ * execute it, regardless of which class's own execute bit backs the s/S
+ * glyph shown in symbolic notation. */
+function isExecutableByAnyone({ owner, group, other }: Permissions): boolean {
+  return owner.execute || group.execute || other.execute
+}
+
 /** Flags the security-relevant and easy-to-misread combinations in
  * `permissions` - world-writable content, special bits that are inert for
  * this file type, and directories missing the sticky bit they'd usually
  * want - ordered most severe first. Returns an empty array for an
- * unremarkable, everyday permission set. */
+ * unremarkable, everyday permission set.
+ *
+ * Symlink permissions are ignored on Linux wholesale (the kernel checks
+ * the link target's mode, not the link's own), so a symlink short-circuits
+ * to a single explanatory note rather than running the rest of this
+ * file/directory-oriented analysis against bits that don't actually apply. */
 export function getPermissionWarnings(permissions: Permissions): PermissionWarning[] {
+  if (permissions.fileType === 'l') {
+    return [
+      {
+        level: 'info',
+        message: "Permissions on a symlink are ignored on Linux; the link target's own permissions apply instead.",
+      },
+    ]
+  }
+
   const { owner, group, other, special, fileType } = permissions
   const warnings: PermissionWarning[] = []
   const noun = fileTypeNoun(fileType)
+  const executable = isExecutableByAnyone(permissions)
 
-  if (fileType === 'l') {
-    warnings.push({
-      level: 'info',
-      message: "Permissions on a symlink are ignored on Linux; the link target's own permissions apply instead.",
-    })
-  }
-
-  if (other.write && special.setuid) {
+  if (fileType === '-' && other.write && special.setuid && executable) {
     warnings.push({
       level: 'danger',
       message:
@@ -223,10 +251,11 @@ export function getPermissionWarnings(permissions: Permissions): PermissionWarni
   if (special.setuid) {
     if (fileType === 'd') {
       warnings.push({ level: 'info', message: 'Setuid has no effect on a directory (Linux ignores it there).' })
-    } else if (!owner.execute) {
+    } else if (!executable) {
       warnings.push({
         level: 'info',
-        message: 'Setuid is set but the owner execute bit is off, so it has no effect (shown as "S").',
+        message:
+          'Setuid is set but nothing can execute this file (no execute bit is set for owner, group, or other), so it has no effect.',
       })
     } else {
       warnings.push({
@@ -243,10 +272,11 @@ export function getPermissionWarnings(permissions: Permissions): PermissionWarni
         message:
           'Setgid on a directory: new files and subdirectories created inside inherit this group, useful for shared team directories.',
       })
-    } else if (!group.execute) {
+    } else if (!executable) {
       warnings.push({
         level: 'info',
-        message: 'Setgid is set but the group execute bit is off, so it has no effect (shown as "S").',
+        message:
+          'Setgid is set but nothing can execute this file (no execute bit is set for owner, group, or other), so it has no effect.',
       })
     } else {
       warnings.push({

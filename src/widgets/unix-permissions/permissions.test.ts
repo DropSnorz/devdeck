@@ -136,13 +136,23 @@ describe('parseSymbolic', () => {
     expect(parseSymbolic('xyzr-xr-x')).toBeNull()
     expect(parseSymbolic('')).toBeNull()
   })
+
+  it('rejects t/T (the sticky-bit letters) in the owner or group execute position', () => {
+    // t/T is only meaningful in the "other" slot (sticky bit); a lenient
+    // regex previously accepted it for owner/group too and silently
+    // reinterpreted it instead of rejecting the input.
+    expect(parseSymbolic('-rwt------')).toBeNull()
+    expect(parseSymbolic('-rwT------')).toBeNull()
+    expect(parseSymbolic('-rwxr-t---')).toBeNull()
+    expect(parseSymbolic('-rwxr-T---')).toBeNull()
+  })
 })
 
 describe('toChmodCommands', () => {
-  it('produces both a numeric and symbolic-assignment form', () => {
+  it('produces both a numeric and symbolic-assignment form, with the target shell-quoted', () => {
     const commands = toChmodCommands(rwxrxrx, 'script.sh')
-    expect(commands.numeric).toBe('chmod 755 script.sh')
-    expect(commands.symbolic).toBe('chmod u=rwx,g=rx,o=rx script.sh')
+    expect(commands.numeric).toBe("chmod 755 -- 'script.sh'")
+    expect(commands.symbolic).toBe("chmod u=rwx,g=rx,o=rx -- 'script.sh'")
   })
 
   it('folds special bits into their conventional clause', () => {
@@ -152,8 +162,21 @@ describe('toChmodCommands', () => {
       special: { setuid: false, setgid: true, sticky: true },
     }
     const commands = toChmodCommands(withSpecial, 'shared')
-    expect(commands.numeric).toBe('chmod 3755 shared')
-    expect(commands.symbolic).toBe('chmod u=rwx,g=rxs,o=rxt shared')
+    expect(commands.numeric).toBe("chmod 3755 -- 'shared'")
+    expect(commands.symbolic).toBe("chmod u=rwx,g=rxs,o=rxt -- 'shared'")
+  })
+
+  it('quotes a target that would otherwise look like a second shell command', () => {
+    // The widget never executes this string itself, but it's rendered as a
+    // copy-pasteable command, so an untrusted/pasted target must not be
+    // able to inject a second command via unescaped shell metacharacters.
+    const commands = toChmodCommands(rwxrxrx, 'report; rm -rf ~')
+    expect(commands.numeric).toBe("chmod 755 -- 'report; rm -rf ~'")
+  })
+
+  it('escapes an embedded single quote in the target', () => {
+    const commands = toChmodCommands(rwxrxrx, "it's a file")
+    expect(commands.numeric).toBe(`chmod 755 -- 'it'\\''s a file'`)
   })
 })
 
@@ -171,6 +194,42 @@ describe('getPermissionWarnings', () => {
     const warnings = getPermissionWarnings(risky)
     expect(warnings[0].level).toBe('danger')
     expect(warnings[0].message).toMatch(/setuid/i)
+  })
+
+  it('does not flag the setuid + world-writable danger for a directory', () => {
+    // Setuid has no effect on a directory at all (Linux ignores it), so
+    // combining it with world-writable isn't the "replace the file and
+    // have it run as the owner" risk the danger message describes.
+    const dir: Permissions = {
+      ...rwxrxrx,
+      fileType: 'd',
+      other: { read: true, write: true, execute: true },
+      special: { setuid: true, setgid: false, sticky: false },
+    }
+    expect(getPermissionWarnings(dir).some((w) => w.level === 'danger')).toBe(false)
+  })
+
+  it('does not flag the setuid + world-writable danger for a symlink', () => {
+    // Symlink permissions are ignored wholesale, short-circuiting to the
+    // single symlink note before any other check runs.
+    const link: Permissions = {
+      ...rwxrxrx,
+      fileType: 'l',
+      other: { read: true, write: true, execute: true },
+      special: { setuid: true, setgid: false, sticky: false },
+    }
+    expect(getPermissionWarnings(link).some((w) => w.level === 'danger')).toBe(false)
+  })
+
+  it('does not flag the setuid + world-writable danger when nothing can execute the file', () => {
+    const notExecutable: Permissions = {
+      owner: { read: true, write: true, execute: false },
+      group: { read: true, write: false, execute: false },
+      other: { read: true, write: true, execute: false },
+      special: { setuid: true, setgid: false, sticky: false },
+      fileType: '-',
+    }
+    expect(getPermissionWarnings(notExecutable).some((w) => w.level === 'danger')).toBe(false)
   })
 
   it('flags a world-writable file as a warning', () => {
@@ -216,6 +275,34 @@ describe('getPermissionWarnings', () => {
   it('notes that setuid is inert on a directory', () => {
     const dir: Permissions = { ...rwxrxrx, fileType: 'd', special: { setuid: true, setgid: false, sticky: false } }
     expect(getPermissionWarnings(dir).some((w) => /setuid has no effect on a directory/i.test(w.message))).toBe(true)
+  })
+
+  it('treats setuid as active when only a triad other than owner can execute it', () => {
+    // -rwSr--x: the owner's own execute bit is off (hence the capital "S"
+    // glyph in symbolic notation), but "other" can still execute the file,
+    // which is enough for setuid to take hold on exec. It must not be
+    // reported as inert just because the owner's own bit is off.
+    const otherExecOnly: Permissions = {
+      owner: { read: true, write: true, execute: false },
+      group: { read: true, write: false, execute: false },
+      other: { read: false, write: false, execute: true },
+      special: { setuid: true, setgid: false, sticky: false },
+      fileType: '-',
+    }
+    const warnings = getPermissionWarnings(otherExecOnly)
+    expect(warnings.some((w) => /runs with the owner's identity/i.test(w.message))).toBe(true)
+    expect(warnings.some((w) => /has no effect/i.test(w.message))).toBe(false)
+  })
+
+  it('notes that setuid is inert when no class can execute the file at all', () => {
+    const noExec: Permissions = {
+      owner: { read: true, write: true, execute: false },
+      group: { read: true, write: false, execute: false },
+      other: { read: true, write: false, execute: false },
+      special: { setuid: true, setgid: false, sticky: false },
+      fileType: '-',
+    }
+    expect(getPermissionWarnings(noExec).some((w) => /nothing can execute this file/i.test(w.message))).toBe(true)
   })
 
   it('notes that setgid on a directory enables group inheritance', () => {
