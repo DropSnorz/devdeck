@@ -32,6 +32,7 @@ import { invisibleCharCleanerDefinition } from './invisible-char-cleaner/definit
 import { tokenCounterDefinition } from './token-counter/definition'
 import { logViewerDefinition } from './log-viewer/definition'
 import { lzStringDefinition } from './lz-string/definition'
+import { unixPermissionsDefinition } from './unix-permissions/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -69,6 +70,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   tokenCounterDefinition,
   logViewerDefinition,
   lzStringDefinition,
+  unixPermissionsDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
