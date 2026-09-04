@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { minifyXml, parseXml, prettyPrintXml, xmlToTree } from './xmlFormat'
+import { minifyXml, parseXml, prettyPrintXml } from './xmlFormat'
 
 describe('parseXml', () => {
   it('parses well-formed XML', () => {
@@ -90,27 +90,5 @@ describe('minifyXml', () => {
     const input = '<?xml-stylesheet href="style.xsl" type="text/xsl"?>\n<root><a>1</a></root>'
     const { doc } = parseXml(input)
     expect(minifyXml(input, doc!)).toBe('<?xml-stylesheet href="style.xsl" type="text/xsl"?><root><a>1</a></root>')
-  })
-})
-
-describe('xmlToTree', () => {
-  it('converts a leaf element to its text content', () => {
-    const { doc } = parseXml('<root><a>1</a></root>')
-    expect(xmlToTree(doc!)).toEqual({ root: { a: '1' } })
-  })
-
-  it('collapses repeated sibling tags into an array', () => {
-    const { doc } = parseXml('<root><item>1</item><item>2</item></root>')
-    expect(xmlToTree(doc!)).toEqual({ root: { item: ['1', '2'] } })
-  })
-
-  it('prefixes attributes with @ and keys text content as #text', () => {
-    const { doc } = parseXml('<root><a id="1">hello</a></root>')
-    expect(xmlToTree(doc!)).toEqual({ root: { a: { '@id': '1', '#text': 'hello' } } })
-  })
-
-  it('keeps direct mixed-content text under #text instead of dropping it', () => {
-    const { doc } = parseXml('<p>Hello <b>world</b>!</p>')
-    expect(xmlToTree(doc!)).toEqual({ p: { '#text': 'Hello !', b: 'world' } })
   })
 })

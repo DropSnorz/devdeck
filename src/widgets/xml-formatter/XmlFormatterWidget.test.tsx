@@ -8,7 +8,7 @@ describe('XmlFormatterWidget', () => {
   it('starts with the sample XML, view defaulted to Plain (no output panel)', () => {
     render(<XmlFormatterWidget instanceId="test" mode="grid" />)
 
-    expect(screen.getByRole('textbox', { name: /xml input/i })).toHaveTextContent('hello')
+    expect(screen.getByRole('textbox', { name: /xml input/i })).toHaveTextContent('catalog')
     expect(screen.queryByRole('tree')).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /xml output/i })).not.toBeInTheDocument()
   })
@@ -18,8 +18,13 @@ describe('XmlFormatterWidget', () => {
     render(<XmlFormatterWidget instanceId="test" mode="grid" />)
 
     await user.click(screen.getByRole('button', { name: 'Tree' }))
+    const tree = screen.getByRole('tree')
 
-    expect(within(screen.getByRole('tree')).getByText('"world"')).toBeInTheDocument()
+    // Elements keep their own markup shape rather than being flattened into
+    // JSON-style `@attr`/`#text` keys, and attributes are their own rows.
+    expect(within(tree).getByText('catalog')).toBeInTheDocument()
+    expect(within(tree).getAllByText('id').length).toBeGreaterThan(0)
+    expect(within(tree).getByText('"bk101"')).toBeInTheDocument()
   })
 
   it('shows an error instead of the tree for invalid XML', async () => {
@@ -30,7 +35,6 @@ describe('XmlFormatterWidget', () => {
     const input = screen.getByRole('textbox', { name: /xml input/i })
     setCodeMirrorValue(input, '<root><a>unclosed</root>')
 
-    expect(screen.queryByText('"world"')).not.toBeInTheDocument()
     expect(screen.queryByRole('tree')).not.toBeInTheDocument()
     expect(screen.queryByText(/output will appear here/i)).not.toBeInTheDocument()
     // Exact wording comes from DOMParser's own error and isn't worth pinning
@@ -44,6 +48,7 @@ describe('XmlFormatterWidget', () => {
     render(<XmlFormatterWidget instanceId="test" mode="grid" />)
 
     await user.click(screen.getByRole('button', { name: 'Minified' }))
+    setCodeMirrorValue(screen.getByRole('textbox', { name: /xml input/i }), '<root>\n  <hello>world</hello>\n</root>')
 
     expect(screen.getByRole('textbox', { name: /xml output/i })).toHaveValue('<root><hello>world</hello></root>')
   })
@@ -53,8 +58,11 @@ describe('XmlFormatterWidget', () => {
     render(<XmlFormatterWidget instanceId="test" mode="grid" />)
 
     await user.click(screen.getByRole('button', { name: 'Pretty' }))
+    setCodeMirrorValue(screen.getByRole('textbox', { name: /xml input/i }), '<root><hello>world</hello></root>')
 
-    expect(screen.getByRole('textbox', { name: /xml output/i })).toHaveValue('<root>\n  <hello>world</hello>\n</root>')
+    expect(screen.getByRole('textbox', { name: /xml output/i })).toHaveValue(
+      '<root>\n  <hello>world</hello>\n</root>',
+    )
   })
 
   it('shows a placeholder instead of an error for empty input', async () => {

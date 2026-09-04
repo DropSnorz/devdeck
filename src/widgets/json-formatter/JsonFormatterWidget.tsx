@@ -1,29 +1,39 @@
 import { useMemo } from 'react'
-import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite'
-import 'react-json-view-lite/dist/index.css'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { CodeEditor } from '@/components/CodeEditor'
+import { DataTree } from '@/components/data-tree/DataTree'
+import { buildJsonTree } from '@/components/data-tree/treeModel'
 import { Textarea } from '@/components/ui/textarea'
-import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
 type ViewMode = 'plain' | 'tree' | 'pretty' | 'minified'
 
-const SAMPLE = '{\n  "hello": "world"\n}'
+/** Sample chosen to exercise what the tree view can show: a well-known id,
+ * a URL, a timestamp, a hex color, a homogeneous array, and a nested
+ * object, so the widget demonstrates itself on first open. */
+const SAMPLE = `{
+  "id": "8f14e45f-ea8b-4f1e-9c0a-2b6d7c3e5a91",
+  "name": "localgrid",
+  "url": "https://localgrid.dev",
+  "createdAt": "2024-03-18T09:24:00Z",
+  "stars": 1284,
+  "archived": false,
+  "license": null,
+  "theme": { "accent": "#38bdf8", "mode": "dark" },
+  "tags": ["json", "xml", "devtools"]
+}`
 
 export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
   const [input, setInput] = useWidgetState(instanceId, 'input', SAMPLE)
   const [viewMode, setViewMode] = useWidgetState<ViewMode>(instanceId, 'viewMode', 'plain')
-  const isDark = useIsDarkTheme()
   useWidgetDirty(instanceId, input !== SAMPLE)
 
   const { data, error } = useMemo(() => {
-    if (!input.trim())
-      return { data: undefined as unknown, error: null as string | null }
+    if (!input.trim()) return { data: undefined as unknown, error: null as string | null }
     try {
       return { data: JSON.parse(input) as unknown, error: null }
     } catch (err) {
@@ -39,10 +49,15 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
 
   const formattedOutput = useMemo(() => {
     if (!hasData) return ''
-    return viewMode === 'minified'
-      ? JSON.stringify(data)
-      : JSON.stringify(data, null, 2)
+    return viewMode === 'minified' ? JSON.stringify(data) : JSON.stringify(data, null, 2)
   }, [data, hasData, viewMode])
+
+  // Rebuilt on every keystroke, which is cheap (the walk is linear and holds
+  // the parsed values by reference) — and DataTree keys its expansion and
+  // selection state on stable node paths, so nothing collapses while typing.
+  const tree = useMemo(() => (isTreeRenderable ? buildJsonTree(data) : null), [data, isTreeRenderable])
+
+  const showTree = viewMode === 'tree' && tree !== null
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -65,32 +80,24 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
         className="min-h-0 flex-1"
       />
       {viewMode !== 'plain' && (
-        <div className="relative min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background p-2 dark:bg-muted/40">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-background p-2 dark:bg-muted/40">
           {error ? (
             <ErrorMessage>{error}</ErrorMessage>
           ) : !hasData ? (
-            <p className="text-xs text-muted-foreground">
-              Output will appear here
-            </p>
-          ) : viewMode === 'tree' && isTreeRenderable ? (
-            <JsonView
-              data={data as object}
-              style={isDark ? darkStyles : defaultStyles}
-            />
+            <p className="text-xs text-muted-foreground">Output will appear here</p>
+          ) : showTree ? (
+            <DataTree root={tree} label="JSON tree" className="flex-1" />
           ) : (
-            <Textarea
-              readOnly
-              value={formattedOutput}
-              spellCheck={false}
-              aria-label="JSON output"
-              className="h-full w-full resize-none border-0 bg-transparent p-0 pr-14 font-mono text-xs"
-            />
-          )}
-          {hasData && (
-            <CopyButton
-              value={formattedOutput}
-              className="absolute right-1 top-1 bg-inherit"
-            />
+            <>
+              <Textarea
+                readOnly
+                value={formattedOutput}
+                spellCheck={false}
+                aria-label="JSON output"
+                className="h-full w-full resize-none overflow-auto border-0 bg-transparent p-0 pr-14 font-mono text-xs"
+              />
+              <CopyButton value={formattedOutput} className="absolute right-1 top-1 bg-inherit" />
+            </>
           )}
         </div>
       )}
