@@ -120,8 +120,11 @@
   --tree-string: var(--color-emerald-700);
   --tree-number: var(--color-violet-600);
   --tree-boolean: var(--color-amber-700);
-  --tree-null: var(--color-slate-400);
-  --tree-punct: var(--color-slate-400);
+  /* Punctuation and `null` are still text at 12px, so they sit at a shade
+   * that clears WCAG AA against the panel rather than the lighter grey a
+   * purely decorative rule would take. */
+  --tree-null: var(--color-slate-600);
+  --tree-punct: var(--color-slate-600);
   --tree-comment: var(--color-slate-500);
   --tree-warn: var(--color-amber-600);
   --tree-guide: var(--color-slate-200);
@@ -158,8 +161,8 @@
   --tree-string: var(--color-emerald-400);
   --tree-number: var(--color-violet-400);
   --tree-boolean: var(--color-amber-400);
-  --tree-null: var(--color-slate-500);
-  --tree-punct: var(--color-slate-600);
+  --tree-null: var(--color-slate-400);
+  --tree-punct: var(--color-slate-400);
   --tree-comment: var(--color-slate-500);
   --tree-warn: var(--color-amber-400);
   --tree-guide: var(--color-slate-800);

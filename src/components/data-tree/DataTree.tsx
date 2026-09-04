@@ -176,6 +176,20 @@ function statsLine(node: TreeNode): string {
   return parts.join(' · ')
 }
 
+/** Trims a long value for display, keeping the filter match inside what is
+ * shown. Truncating from the start alone can leave a row that matched the
+ * filter displaying no highlight at all, which reads as a false positive. */
+function valuePreview(text: string, query: string, max: number): string {
+  if (text.length <= max) return text
+  const needle = query.trim().toLowerCase()
+  const at = needle ? text.toLowerCase().indexOf(needle) : -1
+  if (at === -1 || at + needle.length <= max) return truncate(text, max)
+  const lead = Math.max(0, Math.floor((max - needle.length) / 2))
+  const start = Math.min(Math.max(0, at - lead), text.length - max)
+  const end = start + max
+  return `…${text.slice(start, end)}${end < text.length ? '…' : ''}`
+}
+
 function Highlight({ text, query }: { text: string; query: string }) {
   const needle = query.trim().toLowerCase()
   if (!needle) return <>{text}</>
@@ -367,7 +381,11 @@ export function DataTree({ root, label, toolbar = true, statusBar = true, scroll
       <div
         role="tree"
         aria-label={label}
-        tabIndex={selected ? -1 : 0}
+        // Keyed on the row that is actually rendered, not on the stored id:
+        // once filtering or collapsing hides the selection, no row carries
+        // tabIndex 0 any more, and a tree that kept -1 here would drop out of
+        // the tab order entirely.
+        tabIndex={selectedNode ? -1 : 0}
         onKeyDown={handleKeyDown}
         onMouseLeave={() => setHovered(null)}
         className={cn(
@@ -547,7 +565,7 @@ const TreeRow = memo(function TreeRow({
       {valueText !== null && <NodeValue node={node} text={valueText} hint={hint} query={query} />}
 
       {!expanded && expandable && node.preview && (
-        <span className="min-w-0 flex-1 truncate text-tree-punct/80">{node.preview}</span>
+        <span className="min-w-0 flex-1 truncate text-tree-punct">{node.preview}</span>
       )}
 
       {badge && (
@@ -612,7 +630,7 @@ function NodeValue({
   hint: ValueHint
   query: string
 }): ReactNode {
-  const display = truncate(text, MAX_VALUE_CHARS)
+  const display = valuePreview(text, query, MAX_VALUE_CHARS)
   const length = lengthNote(node.kind, node.value)
 
   return (

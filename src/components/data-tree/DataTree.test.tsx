@@ -122,6 +122,33 @@ describe('DataTree', () => {
     expect(row('second')).toHaveAttribute('aria-selected', 'true')
   })
 
+  it('stays reachable by keyboard after the selected row is filtered away', async () => {
+    const user = userEvent.setup()
+    renderJson()
+
+    await user.click(screen.getByText('"dark"'))
+    const tree = screen.getByRole('tree')
+    expect(tree).toHaveAttribute('tabindex', '-1')
+
+    // The selected row is gone, so no row carries tabIndex 0 any more: the
+    // tree itself has to take the tab stop back, or the viewer drops out of
+    // the tab order entirely.
+    await user.type(screen.getByRole('textbox', { name: /filter json tree/i }), 'localgrid')
+    expect(screen.getByRole('tree')).toHaveAttribute('tabindex', '0')
+  })
+
+  it('keeps a filter match visible in a value too long to show whole', async () => {
+    const user = userEvent.setup()
+    const buried = `${'x'.repeat(400)}needle${'y'.repeat(400)}`
+    renderJson({ blob: buried })
+
+    await user.type(screen.getByRole('textbox', { name: /filter json tree/i }), 'needle')
+
+    // Truncating from the start would leave this row matched but with
+    // nothing highlighted, which reads as a false positive.
+    expect(screen.getByText('needle').tagName).toBe('MARK')
+  })
+
   it('exposes tree semantics for assistive technology', () => {
     renderJson({ parent: { child: 1 } })
 

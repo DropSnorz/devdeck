@@ -89,13 +89,15 @@ export function truncate(text: string, max: number): string {
 }
 
 /** The exact text a leaf renders as. Strings stay quoted so an empty string,
- * a numeric string, and a real number remain distinguishable. */
+ * a numeric string, and a real number remain distinguishable, and escaped so
+ * a value carrying a newline, quote, or tab stays one readable row instead of
+ * silently spilling across several. */
 export function formatScalar(kind: TreeNodeKind, value: TreeNode['value']): string {
   if (kind === 'null' || value === null || value === undefined) return 'null'
   // A comment or processing instruction is prose, not data: quoting it only
   // adds noise, where a text node's exact whitespace can be the bug.
   if (kind === 'comment' || kind === 'instruction') return String(value).trim()
-  if (typeof value === 'string') return `"${value}"`
+  if (typeof value === 'string') return JSON.stringify(value)
   return String(value)
 }
 
@@ -214,14 +216,29 @@ export function buildJsonTree(value: unknown): TreeNode {
 // --- XML --------------------------------------------------------------------
 
 /** Whitespace between tags is formatting, not content, so it never becomes a
- * row: the same rule prettyPrintXml applies when re-indenting. */
-function isMeaningful(node: ChildNode): boolean {
-  if (node.nodeType === Node.TEXT_NODE) return !!node.textContent?.trim()
+ * row: the same rule prettyPrintXml applies when re-indenting. Inside an
+ * `xml:space="preserve"` subtree that whitespace *is* content, so it stays. */
+function isMeaningful(node: ChildNode, preserve: boolean): boolean {
+  if (node.nodeType === Node.TEXT_NODE) return preserve || !!node.textContent?.trim()
   return true
 }
 
-function xmlChildNodes(parent: Node): ChildNode[] {
-  return Array.from(parent.childNodes).filter(isMeaningful)
+/** `xml:space="preserve"` applies to an element and inherits down to its
+ * descendants until an `xml:space="default"` turns it back off (mirrors
+ * xmlFormat.ts, which applies the same rule when pretty-printing). */
+function resolvePreserveSpace(node: ChildNode, inherited: boolean): boolean {
+  if (node.nodeType !== Node.ELEMENT_NODE) return inherited
+  const value = (node as Element).getAttribute('xml:space')
+  if (value === 'preserve') return true
+  if (value === 'default') return false
+  return inherited
+}
+
+function xmlChildNodes(parent: Node, preserve: boolean): ChildNode[] {
+  const kept = Array.from(parent.childNodes).filter((child) => isMeaningful(child, preserve))
+  // An element whose entire content is whitespace still has that content, and
+  // dropping it would render `<pre> </pre>` as an empty element.
+  return kept.length > 0 ? kept : Array.from(parent.childNodes)
 }
 
 const XML_KINDS: Record<number, TreeNodeKind> = {
@@ -235,8 +252,8 @@ const XML_KINDS: Record<number, TreeNodeKind> = {
 /** True when an element's content is a single run of text. That text is then
  * shown inline on the element's own row rather than as a child row, which is
  * how the markup itself reads. */
-function isTextOnly(el: Element): boolean {
-  const children = xmlChildNodes(el)
+function isTextOnly(el: Element, preserve: boolean): boolean {
+  const children = xmlChildNodes(el, preserve)
   if (children.length !== 1) return false
   const only = children[0].nodeType
   return only === Node.TEXT_NODE || only === Node.CDATA_SECTION_NODE
@@ -276,9 +293,11 @@ function buildXmlNode(
   parentId: string,
   ancestors: string[],
   depth: number,
+  inheritedPreserve: boolean,
   index?: number,
 ): TreeNode {
   const kind = XML_KINDS[domNode.nodeType] ?? 'text'
+  const preserve = resolvePreserveSpace(domNode, inheritedPreserve)
   const step = xmlStep(domNode, kind)
   const positioned = index === undefined ? step : `${step}[${index + 1}]`
   const id = `${parentId}${ID_SEP}${positioned}`
@@ -316,10 +335,10 @@ function buildXmlNode(
         source: attr.value,
       })
     }
-    if (isTextOnly(el)) {
+    if (isTextOnly(el, preserve)) {
       node.value = el.textContent ?? ''
     } else {
-      node.children.push(...buildXmlChildren(el, path, id, childAncestors, depth + 1))
+      node.children.push(...buildXmlChildren(el, path, id, childAncestors, depth + 1, preserve))
     }
   } else {
     node.value = domNode.textContent ?? ''
@@ -332,25 +351,30 @@ function buildXmlNode(
 
 /** Positional indices are assigned only where a name actually repeats, so a
  * one-off tag stays unindexed while repeated siblings keep addressable,
- * countable paths. */
+ * countable paths. Occurrences are counted per *rendered step*, not per DOM
+ * node name: a text node and a CDATA section are both addressed as `text()`,
+ * so counting by node name would hand them the same path and id. */
 function buildXmlChildren(
   parent: Node,
   parentPath: string,
   parentId: string,
   ancestors: string[],
   depth: number,
+  preserve: boolean,
 ): TreeNode[] {
-  const children = xmlChildNodes(parent)
+  const children = xmlChildNodes(parent, preserve)
+  const steps = children.map((child) => xmlStep(child, XML_KINDS[child.nodeType] ?? 'text'))
   const totals = new Map<string, number>()
-  for (const child of children) {
-    totals.set(child.nodeName, (totals.get(child.nodeName) ?? 0) + 1)
+  for (const step of steps) {
+    totals.set(step, (totals.get(step) ?? 0) + 1)
   }
   const seen = new Map<string, number>()
-  return children.map((child) => {
-    const repeated = (totals.get(child.nodeName) ?? 0) > 1
-    const position = seen.get(child.nodeName) ?? 0
-    seen.set(child.nodeName, position + 1)
-    return buildXmlNode(child, parentPath, parentId, ancestors, depth, repeated ? position : undefined)
+  return children.map((child, position) => {
+    const step = steps[position]
+    const occurrence = seen.get(step) ?? 0
+    seen.set(step, occurrence + 1)
+    const repeated = (totals.get(step) ?? 0) > 1
+    return buildXmlNode(child, parentPath, parentId, ancestors, depth, preserve, repeated ? occurrence : undefined)
   })
 }
 
@@ -367,7 +391,7 @@ export function buildXmlTree(doc: Document): TreeNode {
     stats: { children: 0, descendants: 0, depth: 0, itemKind: null },
     source: doc,
   }
-  root.children = buildXmlChildren(doc, '', 'xml', ['xml'], 1)
+  root.children = buildXmlChildren(doc, '', 'xml', ['xml'], 1, false)
   root.stats = statsOf(root.children)
   return root
 }

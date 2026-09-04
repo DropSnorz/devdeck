@@ -116,6 +116,37 @@ describe('buildXmlTree', () => {
     expect(p.children.map((child) => child.kind)).toEqual(['text', 'element', 'text'])
   })
 
+  it('gives a text node and a CDATA section distinct paths', () => {
+    // Both are addressed as `text()` in XPath but have different DOM node
+    // names, so counting occurrences by node name would hand them the same
+    // id, aliasing their rows in the tree.
+    const root = buildXmlTree(parse('<a><![CDATA[x]]>y</a>'))
+
+    expect(flatPaths(root)).toEqual(['/a', '/a/text()[1]', '/a/text()[2]'])
+    const [cdata, text] = find(root, '/a').children
+    expect([cdata.kind, text.kind]).toEqual(['cdata', 'text'])
+    expect(cdata.id).not.toBe(text.id)
+  })
+
+  it('keeps text that is only whitespace when it is the whole content', () => {
+    // Indentation between tags is formatting and stays dropped, but an
+    // element whose entire content is a space would otherwise render empty.
+    expect(find(buildXmlTree(parse('<pre> </pre>')), '/pre').value).toBe(' ')
+  })
+
+  it('keeps indentation inside an xml:space="preserve" subtree', () => {
+    // `xml:space` is itself an attribute row, so only the content children
+    // are compared here.
+    const content = (node: TreeNode) => node.children.filter((child) => child.kind !== 'attribute').map((c) => c.kind)
+
+    const root = buildXmlTree(parse('<r><pre xml:space="preserve">\n  <b>x</b>\n</pre></r>'))
+    expect(content(find(root, '/r/pre'))).toEqual(['text', 'element', 'text'])
+
+    // ...and drops it again below an explicit xml:space="default".
+    const off = buildXmlTree(parse('<r xml:space="preserve"><p xml:space="default">\n  <b>x</b>\n</p></r>'))
+    expect(content(find(off, '/r/p'))).toEqual(['element'])
+  })
+
   it('counts attributes as children of their element', () => {
     const root = buildXmlTree(parse('<a x="1" y="2"><b/></a>'))
     expect(find(root, '/a').stats).toMatchObject({ children: 3, descendants: 3 })
@@ -163,6 +194,13 @@ describe('formatting helpers', () => {
     expect(formatScalar('string', '12')).toBe('"12"')
     expect(formatScalar('number', 12)).toBe('12')
     expect(formatScalar('null', null)).toBe('null')
+  })
+
+  it('escapes a string that would otherwise break out of its row', () => {
+    // A raw newline would render the value across several visual lines, and
+    // a bare quote would read as the end of the value.
+    expect(formatScalar('string', 'two\nlines')).toBe('"two\\nlines"')
+    expect(formatScalar('string', 'say "hi"')).toBe('"say \\"hi\\""')
   })
 
   it('pluralizes a homogeneous collection and gives up on a mixed one', () => {
