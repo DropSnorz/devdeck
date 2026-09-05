@@ -315,7 +315,7 @@ function matchSyslog(text: string, options: ParseOptions): Match | null {
   if (!isRealDate(w)) return null
   let ms = wallClockToEpochMs(w, options.timeZone)
   // Syslog omits the year, so a line that would land in the future is
-  // really from last year — the same rule log rotators use.
+  // really from last year, the same rule log rotators use.
   if (ms - now > 86400000) {
     w = build(reference.year - 1)
     ms = wallClockToEpochMs(w, options.timeZone)
@@ -505,7 +505,7 @@ export function parseEventLines(text: string, options: ParseOptions): ParsedLine
   return { events, failed }
 }
 
-/** Shown in the widget's help popover — kept next to the matchers so the two
+/** Shown in the widget's help popover, kept next to the matchers so the two
  * cannot drift apart. */
 export const SUPPORTED_FORMAT_EXAMPLES = [
   '1705321496 / 1705321496789 (epoch s, ms, µs, ns)',

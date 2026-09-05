@@ -102,7 +102,7 @@ export function formatDateTimeInZone(ms: number, timeZone: string, withMillis = 
   return `${formatDateInZone(ms, timeZone)} ${formatTimeInZone(ms, timeZone, withMillis)}`
 }
 
-/** Fallback list for engines without `Intl.supportedValuesOf` — one zone per
+/** Fallback list for engines without `Intl.supportedValuesOf`: one zone per
  * common offset rather than an attempt at completeness, since the picker is
  * only ever a convenience over "type the offset into the timestamp itself". */
 const FALLBACK_TIME_ZONES = [

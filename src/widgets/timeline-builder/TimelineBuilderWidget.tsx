@@ -349,7 +349,7 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
                         type="button"
                         draggable
                         onDragStart={startDrag(event)}
-                        title={`${formatDateTimeInZone(event.ms, displayZone)}${event.label ? ` — ${event.label}` : ''}`}
+                        title={`${formatDateTimeInZone(event.ms, displayZone)}${event.label ? `, ${event.label}` : ''}`}
                         aria-label={`${event.label || 'Event'} at ${eventTime(event)} on ${lane.name}`}
                         className="group absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-card focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
                         style={{
